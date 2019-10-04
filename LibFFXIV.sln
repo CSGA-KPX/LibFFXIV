@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29230.47
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibFFXIV.GameData.Raw", "LibFFXIV.GameData.Raw\LibFFXIV.GameData.Raw.fsproj", "{EE879DDD-F086-4496-A802-94347995BC9C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE879DDD-F086-4496-A802-94347995BC9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE879DDD-F086-4496-A802-94347995BC9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE879DDD-F086-4496-A802-94347995BC9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE879DDD-F086-4496-A802-94347995BC9C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6118F984-8A4E-4037-BB03-152B3C7E1F77}
+	EndGlobalSection
+EndGlobal
