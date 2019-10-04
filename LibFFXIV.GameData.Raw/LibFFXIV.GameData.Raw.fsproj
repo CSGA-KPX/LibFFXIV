@@ -49,6 +49,7 @@
     <Compile Include="Test.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="raw-exd-all.zip" />
+    <None Include="Readme.md" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
