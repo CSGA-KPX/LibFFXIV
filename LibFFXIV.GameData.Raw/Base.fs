@@ -96,7 +96,6 @@ type XivRow(sheet : IXivSheet, data : string []) =
     let castValue(i : int32) = 
         let str = data.[i]
         let v   = sheet.Header.GetFieldType(i)
-        printfn "casting idx:%i type:%s value:%s" (i-1) v str
         match v with
         | _ when staticCastDict.ContainsKey(v) ->
             staticCastDict.[v](str)
@@ -131,6 +130,8 @@ type XivRow(sheet : IXivSheet, data : string []) =
                 id
             else
                 id + 1
+        if sheet.FieldTracer.IsSome then
+            sheet.FieldTracer.Value.Add(id) |> ignore
         castValue(id) |> unbox<'T>
 
     member x.As<'T>(str)= x.As<'T>(sheet.Header.GetIndex(str), true)
@@ -140,7 +141,6 @@ type XivRow(sheet : IXivSheet, data : string []) =
         [|
             for i = 0 to len - 1 do 
                 let key = sprintf "%s[%i]" prefix i
-                printfn "array key %s" key
                 yield (x.As<'T>(key))
         |]
 
@@ -166,10 +166,13 @@ and IXivSheet =
     abstract Item : RowKeyType -> XivRow
     abstract Collection : IXivCollection
     abstract Name : string
+    abstract FieldTracer : Collections.Generic.HashSet<int> option
+    abstract EnableTracing : unit -> unit
 
 and IXivCollection = 
     abstract GetSheet : string -> IXivSheet
-    abstract GetLimitedSheet : string * ?names : string[] * ?ids : int [] -> IXivSheet
+    abstract GetSelectedSheet : string * ?names : string[] * ?ids : int [] -> IXivSheet
     abstract IsSheet  : string -> bool
     abstract SheetExists : string -> bool
     abstract GetCsvParser : string -> seq<string []>
+    abstract DumpTracedFields : unit -> string

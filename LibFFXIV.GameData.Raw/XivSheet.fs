@@ -7,7 +7,7 @@ type XivSheet (name : string, col : Base.IXivCollection) as x =
     static let headetLength = 3
     let mutable hdr  = None
     let mutable data = None
-
+    let mutable tracer = None
     do
         let csv = col.GetCsvParser(name)
         let header = 
@@ -36,12 +36,18 @@ type XivSheet (name : string, col : Base.IXivCollection) as x =
         member x.GetEnumerator() = 
             data.Value.GetEnumerator() :>IEnumerator
 
+        member x.FieldTracer = tracer
+
+        member x.EnableTracing () = 
+            if tracer = None then
+                tracer <- Some (new HashSet<int>())
+
 /// Parses only selected column, to save memory
-type XivSheetLimited (name : string, col : Base.IXivCollection, includeNames : string [], includeIds : int []) as x = 
+type XivSelectedSheet (name : string, col : Base.IXivCollection, includeNames : string [], includeIds : int []) as x = 
     static let headetLength = 3
     let mutable hdr  = None
     let mutable data = None
-
+    let mutable tracer = None
     do
         let csv = col.GetCsvParser(name)
         let headerItems = 
@@ -60,7 +66,7 @@ type XivSheetLimited (name : string, col : Base.IXivCollection, includeNames : s
             
         hdr <- Some(new Base.XivHeader(ids |> Array.map (fun i -> headerItems.[i])))
         data <-
-            [|
+            seq {
                 for fields in csv |> Seq.skip 3 do 
                     let selected = 
                         [|
@@ -69,7 +75,7 @@ type XivSheetLimited (name : string, col : Base.IXivCollection, includeNames : s
                         |]
                     let row = new Base.XivRow(x :> Base.IXivSheet, selected)
                     yield row.Key, row
-            |]
+            }
             |> readOnlyDict
             |> Some
 
@@ -85,7 +91,13 @@ type XivSheetLimited (name : string, col : Base.IXivCollection, includeNames : s
         member x.GetEnumerator() = 
             data.Value.GetEnumerator() :>IEnumerator
 
-type XivCollection(lang : Base.XivLanguage) = 
+        member x.FieldTracer = tracer
+
+        member x.EnableTracing () = 
+            if tracer = None then
+                tracer <- Some (new HashSet<int>())
+
+type XivCollection(lang : Base.XivLanguage, ?enableTracing : bool) = 
     static let archive = 
         let ResName = "LibFFXIV.GameData.Raw.raw-exd-all.zip"
         let assembly = Reflection.Assembly.GetExecutingAssembly()
@@ -93,10 +105,10 @@ type XivCollection(lang : Base.XivLanguage) =
         new IO.Compression.ZipArchive(stream, IO.Compression.ZipArchiveMode.Read)
 
     static let entriesCache = 
-        [|
+        seq {
             for e in archive.Entries do 
                 yield e.FullName, e
-        |] |> readOnlyDict
+        } |> readOnlyDict
     
     let cache = new Dictionary<string, Base.IXivSheet>()
 
@@ -106,21 +118,23 @@ type XivCollection(lang : Base.XivLanguage) =
     let getCsvNameLang (name) = 
         String.Join(".", name, lang.ToString(), "csv")
 
+    let enableTracing = defaultArg enableTracing false
+
     interface IDisposable with
         member x.Dispose () = 
             archive.Dispose()
 
     interface Base.IXivCollection with
         member x.GetSheet(name) = 
-            if cache.ContainsKey(name) then
-                printfn "sheet cache hit! %s" name
-                cache.[name]
-            else
-                printfn "Init new sheet %s" name
-                let sheet = new XivSheet(name, x) :> Base.IXivSheet
-                printfn "Init new sheet %s end" name
-                cache.Add(name, sheet)
-                sheet
+            let sheet = 
+                if cache.ContainsKey(name) then
+                    cache.[name]
+                else
+                    let sheet = new XivSheet(name, x) :> Base.IXivSheet
+                    cache.Add(name, sheet)
+                    sheet
+            if enableTracing then sheet.EnableTracing()
+            sheet
 
         member x.SheetExists (name) = 
             entriesCache.ContainsKey(name)
@@ -151,13 +165,23 @@ type XivCollection(lang : Base.XivLanguage) =
                     yield reader.ReadFields()
             }
 
-        /// Manual initialize a XivSheetLimited
-        member x.GetLimitedSheet(name, ?names, ?ids) = 
+        /// Manual initialize a XivSheetLimited, overrides sheet cache if exists.
+        member x.GetSelectedSheet(name, ?names, ?ids) = 
             let names = defaultArg names [||]
             let ids   = defaultArg ids   [||]
 
-            printfn "Init limited sheet %s" name
-            let sheet = new XivSheetLimited(name, x, names, ids) :> Base.IXivSheet
-            printfn "Init limited %s end" name
+            let sheet = new XivSelectedSheet(name, x, names, ids) :> Base.IXivSheet
             cache.Add(name, sheet)
+
+            if enableTracing then sheet.EnableTracing()
             sheet
+
+        member x.DumpTracedFields() = 
+            if not enableTracing then
+                failwithf "Does not enable tracing!"
+            let sb = new Text.StringBuilder()
+            for kv in cache do 
+                let name = kv.Key
+                let ids  = kv.Value.FieldTracer.Value |> Seq.toArray |> Array.sort |> sprintf "%A"
+                sb.AppendFormat("    col.GetLimitedSheet(\"{0}\", ids = {1}) |> ignore\r\n", name, ids) |> ignore
+            sb.ToString()

@@ -60,9 +60,6 @@ int32,Item
 Code:
 ```F#
 let col = new XivCollection(Base.XivLanguage.ChineseSimplified) :> Base.IXivCollection
-// initialize item sheet with only Name column to collection cache
-// ignore other column to save memory
-col.GetLimitedSheet("Item", [|"Name"|]) |> ignore
 let ccsSheet = col.GetSheet("CompanyCraftSequence")
 let ccs = ccsSheet.[1000]
 [|
@@ -86,60 +83,32 @@ Result: item * amount in chinese.
 榆木木材 * 30
 黑铁钉 * 30
 切石 * 30
-烧结砖 * 30
-泥岩 * 30
-云杉原木 * 30
-紫杉木材 * 30
-黑铁钉 * 30
-砖块 * 30
-纤维衬料 * 30
-紫檀原木 * 45
-胡桃木材 * 30
-白钢钉 * 30
-灰泥 * 30
-清漆 * 18
-花岗岩 * 30
-大理石 * 30
-梣木木材 * 30
-胡桃木材 * 30
-橡木木材 * 30
-白钢钉 * 30
-鬼胶 * 18
-榆木木材 * 30
-紫杉木材 * 30
-钴铁钉 * 18
-钴铁连接板 * 30
-鬼胶 * 18
-胡桃木材 * 18
-钴铁钉 * 30
-钴铁连接板 * 30
-切石 * 30
-亚麻帆布 * 18
-玻璃板 * 9
-红木木材 * 21
-白钢锭 * 18
-白钢折叶 * 18
-切石 * 21
-玻璃板 * 21
-云杉木材 * 24
-白钢折叶 * 18
-切石 * 18
-玻璃板 * 18
-黑铁锭 * 75
-白钢锭 * 75
-绿金锭 * 75
-切石 * 75
-榆木木材 * 18
-白钢锭 * 18
-玫瑰金锭 * 12
-玻璃板 * 18
-白钢铆钉 * 12
-玫瑰金锭 * 12
-巨蟾蜍革 * 12
-棉布帆布 * 12
-玻璃板 * 12
-红木木材 * 18
-黑铁锭 * 21
-亚麻线 * 21
-亚麻帆布 * 18
+......
+```
+
+#### Filtering Field 
+Some sheets are very complex and consume a lot of memory when parsing,
+
+You can parse only selected fields to save memory.
+
+Fields accessed during runtime can be dumped by `IXivCollection.DumpTracedFields()`
+
+```
+Without filtering:
+00:00:01.8959287  : 136.031250 MB
+
+Select Name from Item
+col.GetSelectedSheet("Item", [|"Name"|])
+00:00:01.4900443  : 46.406250 MB
+
+Only requied fields: (no improvements because Item is the only complex sheet here)
+col.GetSelectedSheet("CompanyCraftSequence", ids = [|6; 7; 8; 9; 10; 11; 12; 13|]) |> ignore
+col.GetSelectedSheet("CompanyCraftPart", ids = [|3; 4; 5|]) |> ignore
+col.GetSelectedSheet("CompanyCraftProcess", ids = [|1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16; 17; 18; 19; 20; 21; 22;
+23; 24; 25; 26; 27; 28; 29; 30; 31; 32; 33; 34; 35; 36|]) |> ignore
+col.GetSelectedSheet("CompanyCraftSupplyItem", ids = [|1|]) |> ignore
+col.GetSelectedSheet("Item", ids = [|10|]) |> ignore
+00:00:01.5279136  : 46.554688 MB
+
+
 ```
