@@ -5,16 +5,15 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>ee879ddd-f086-4496-a802-94347995bc9c</ProjectGuid>
+    <ProjectGuid>84ae55ec-118d-464a-8c79-bc34b57626af</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>LibFFXIV.GameData.Raw</RootNamespace>
-    <AssemblyName>LibFFXIV.GameData.Raw</AssemblyName>
+    <RootNamespace>LibFFXIV.Network</RootNamespace>
+    <AssemblyName>LibFFXIV.Network</AssemblyName>
     <UseStandardResourceNames>true</UseStandardResourceNames>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <WarningsAsErrors>3239;$(WarningsAsErrors)</WarningsAsErrors>
-    <Name>LibFFXIV.GameData.Raw</Name>
-    <TargetFrameworkProfile />
+    <Name>LibFFXIV.Network</Name>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,26 +43,42 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Base.fs" />
-    <Compile Include="XivSheet.fs" />
-    <Compile Include="Test.fs" />
+    <Compile Include="FFXIVCrypto.fs" />
+    <Compile Include="Utils.fs" />
+    <Compile Include="Constants.fs" />
+    <Compile Include="BasePacket\GamePacket.fs" />
+    <Compile Include="BasePacket\SubPacket.fs" />
+    <Compile Include="SpecializedPacket\CharacterNameLookupReply.fs" />
+    <Compile Include="SpecializedPacket\Chat.fs" />
+    <Compile Include="SpecializedPacket\LinkshellList.fs" />
+    <Compile Include="SpecializedPacket\MarketOrders.fs" />
+    <Compile Include="SpecializedPacket\PlayerSpawn.fs" />
+    <Compile Include="SpecializedPacket\TradeLog.fs" />
+    <None Include="Script.fsx" />
     <Content Include="packages.config" />
-    <EmbeddedResource Include="raw-exd-all.zip" />
-    <None Include="Readme.md" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.6.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="mscorlib" />
+    <Reference Include="NLog">
+      <HintPath>..\packages\NLog.4.6.7\lib\net45\NLog.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Transactions" />
     <Reference Include="System.ValueTuple">
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
