@@ -53,6 +53,7 @@ type XivSelectedSheet (name : string, col : Base.IXivCollection, includeNames : 
         let headerItems = 
             let s = csv |> Seq.take headetLength |> Seq.toArray
             Array.map3 (fun a b c -> new Base.XivHeaderItem(a, b, c)) s.[0] s.[1] s.[2]
+        
         let ids   = 
             [|
                 yield 0 // key column
@@ -65,6 +66,7 @@ type XivSelectedSheet (name : string, col : Base.IXivCollection, includeNames : 
             |> Array.sort
             
         hdr <- Some(new Base.XivHeader(ids |> Array.map (fun i -> headerItems.[i])))
+
         data <-
             seq {
                 for fields in csv |> Seq.skip 3 do 
@@ -130,6 +132,7 @@ type XivCollection(lang : Base.XivLanguage, ?enableTracing : bool) =
                 if cache.ContainsKey(name) then
                     cache.[name]
                 else
+                    printfn "debug : init sheet %s" name
                     let sheet = new XivSheet(name, x) :> Base.IXivSheet
                     cache.Add(name, sheet)
                     sheet
@@ -156,11 +159,13 @@ type XivCollection(lang : Base.XivLanguage, ?enableTracing : bool) =
                     else
                         nl
                 use stream = entriesCache.[sheetName].Open()
-                use reader = new Microsoft.VisualBasic.FileIO.TextFieldParser(stream)
-                reader.TextFieldType <- Microsoft.VisualBasic.FileIO.FieldType.Delimited
-                reader.SetDelimiters(",")
-                reader.CommentTokens <- Array.empty
+                use tr     = new IO.StreamReader(stream, new Text.UTF8Encoding(true))
+                use reader = new NotVisualBasic.FileIO.CsvTextFieldParser(tr)
+                //reader.TextFieldType <- Microsoft.VisualBasic.FileIO.FieldType.Delimited
+                reader.SetDelimiter(',')
+                //reader.CommentTokens <- Array.empty
                 reader.TrimWhiteSpace <- true
+                reader.HasFieldsEnclosedInQuotes <- true
                 while not reader.EndOfData do
                     yield reader.ReadFields()
             }
@@ -170,6 +175,7 @@ type XivCollection(lang : Base.XivLanguage, ?enableTracing : bool) =
             let names = defaultArg names [||]
             let ids   = defaultArg ids   [||]
 
+            printfn "debug : init select sheet %s" name
             let sheet = new XivSelectedSheet(name, x, names, ids) :> Base.IXivSheet
             cache.Add(name, sheet)
 

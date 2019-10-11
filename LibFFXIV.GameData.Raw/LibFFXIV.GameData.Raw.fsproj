@@ -52,10 +52,12 @@
     <None Include="Readme.md" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="CsvTextFieldParser">
+      <HintPath>..\..\TheBot\packages\CsvTextFieldParser.1.2.1\lib\netstandard2.0\CsvTextFieldParser.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\packages\FSharp.Core.4.6.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="mscorlib" />
     <Reference Include="System" />
     <Reference Include="System.Core" />

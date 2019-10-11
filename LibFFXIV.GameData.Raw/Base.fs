@@ -70,7 +70,7 @@ type XivHeader(items : XivHeaderItem []) =
         for kv in nameToId do 
             sb.AppendFormat("nameToId {0} -> {1}\r\n", kv.Key, kv.Value) |> ignore
         for k in idToType do 
-            sb.AppendFormat("idToType {0}", k) |> ignore
+            sb.AppendFormat("idToType {0}\r\n", k) |> ignore
         sb.ToString()
 
 type XivRow(sheet : IXivSheet, data : string []) = 
@@ -122,8 +122,8 @@ type XivRow(sheet : IXivSheet, data : string []) =
         sb.Append(String.Join(",", objs))
           .Append("}")
           .ToString()
-
-    member x.As<'T>(id, ?includeKey : bool) =
+        
+    member private x.AdjustId(id, includeKey : bool option) = 
         let includeKey = defaultArg includeKey false
         let id = 
             if includeKey then
@@ -132,10 +132,20 @@ type XivRow(sheet : IXivSheet, data : string []) =
                 id + 1
         if sheet.FieldTracer.IsSome then
             sheet.FieldTracer.Value.Add(id) |> ignore
+        id
+
+    member x.AsRaw(id, ?includeKey : bool) = 
+        let id = x.AdjustId(id, includeKey)
+        data.[id]
+
+    member x.AsRaw(str) = 
+        x.AsRaw(sheet.Header.GetIndex(str), true)
+
+    member x.As<'T>(id, ?includeKey : bool) =
+        let id = x.AdjustId(id, includeKey)
         castValue(id) |> unbox<'T>
 
     member x.As<'T>(str)= x.As<'T>(sheet.Header.GetIndex(str), true)
-
 
     member x.AsArray<'T>(prefix, len) = 
         [|
