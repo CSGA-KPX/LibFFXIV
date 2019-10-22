@@ -1,4 +1,4 @@
-﻿namespace LibFFXIV.GameData.Raw.Base
+﻿namespace LibFFXIV.GameData.Raw
 open System
 open LibFFXIV.GameData.Raw
 
@@ -26,16 +26,20 @@ type XivLanguage =
         | ChineseSimplified  -> "chs"
         | ChineseTraditional -> "cht"
 
-[<System.Runtime.CompilerServices.IsReadOnly; Struct>]
-type XivSheetReference(sheet : string, key : int) =
-    member x.Sheet = sheet
-    member x.Key   = key
+[<CLIMutable>]
+type XivSheetReference =    
+    {
+        Sheet : string
+        Key   : int
+    }
 
-[<System.Runtime.CompilerServices.IsReadOnly; Struct>]
-type XivHeaderItem(k : string, c : string, t : string) = 
-    member x.OrignalKeyName = k
-    member x.ColumnName = c
-    member x.TypeName = t
+[<CLIMutable>]
+type XivHeaderItem = 
+    {
+        OrignalKeyName: string
+        ColumnName    : string
+        TypeName      : string
+    }
 
 type XivHeader(items : XivHeaderItem []) = 
     // #,Name,Name,Name,Name,Name
@@ -64,6 +68,8 @@ type XivHeader(items : XivHeaderItem []) =
     member x.GetFieldType(id) = idToType.[id]
 
     member x.GetFieldType(str) = idToType.[ nameToId.[str] ]
+
+    member x.AllHeaders = items
 
     override x.ToString() = 
         let sb = new Text.StringBuilder()
@@ -100,11 +106,13 @@ type XivRow(sheet : IXivSheet, data : string []) =
         | _ when staticCastDict.ContainsKey(v) ->
             staticCastDict.[v](str)
         | _ when sheet.Collection.IsSheet(v)  -> 
-            XivSheetReference(v, str |> int32) |> box
+            {Sheet = v; Key = str |> int32} |> box
         | _ ->
             str |> box
 
-    member val Key = data.[0] |> int
+    // some sheet has duplicate key, they have xxx.y format
+    // e.g. AnimaWeapon5SpiritTalk
+    member val Key = data.[0].Split('.').[0] |> int
 
     override x.ToString() = 
         let sb = new Text.StringBuilder()
@@ -133,6 +141,8 @@ type XivRow(sheet : IXivSheet, data : string []) =
         if sheet.FieldTracer.IsSome then
             sheet.FieldTracer.Value.Add(id) |> ignore
         id
+
+    member x.RawFields = data
 
     member x.AsRaw(id, ?includeKey : bool) = 
         let id = x.AdjustId(id, includeKey)

@@ -2,13 +2,13 @@
 
 type Opcodes = 
     | None        = 0xFFFFus
-    | TradeLogInfo = 0x0125us // 4.5
-    | TradeLogData = 0x012Aus // 4.5
-    | Market       = 0x0126us // 4.5
-    | CharacterNameLookupReply = 0x018Eus // 4.5
-    | Chat         = 0x00F7us // 4.5
-    | LinkshellList = 0x0104us //4.5
-    | PlayerSpawn   = 0x0175us // 4.5
+    | TradeLogInfo = 0x0125us // 4.5 unused
+    | TradeLogData = 0x0140us // 5.0
+    | Market       = 0x013Cus // 5.0
+    | CharacterNameLookupReply = 0x0199us // 5.0
+    | Chat         = 0x0104us // 5.0
+    | LinkshellList = 0x0000us //4.5
+    | PlayerSpawn   = 0x017Fus // 5.0
 
 type PacketTypes = 
     | None             = 0x0000us
@@ -20,15 +20,15 @@ type PacketTypes =
     | ClientHandShake  = 0x0009us
     | ServerHandShake  = 0x000Aus       
 
-
 type MarketArea = 
-  | LimsaLominsa = 0x0001
-  | Gridania     = 0x0002
-  | Uldah        = 0x0003
-  | Ishgard      = 0x0004
-  | Kugane       = 0x0007
+  | LimsaLominsa =  1
+  | Gridania     =  2
+  | Uldah        =  3
+  | Ishgard      =  4
+  | Kugane       =  7
+  | Crystarium   = 10
 
-let TargetClientVersion     = "2019.08.21.0000.0000"
+let TargetClientVersion     = "2019.09.27.0000.0000"
 
 type PacketDirection = 
     | In   = 0
