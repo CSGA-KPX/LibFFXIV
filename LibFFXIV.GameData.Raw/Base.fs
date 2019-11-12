@@ -2,8 +2,6 @@
 open System
 open LibFFXIV.GameData.Raw
 
-type RowKeyType = int
-
 [<RequireQualifiedAccess>]
 type XivLanguage = 
     | None
@@ -25,6 +23,24 @@ type XivLanguage =
         | Korean    -> "kr"
         | ChineseSimplified  -> "chs"
         | ChineseTraditional -> "cht"
+
+[<CLIMutable; Struct>]
+type XivKey = 
+    {
+        Key    : int
+        AltKey : int
+    }
+
+    static member FromKey(k) = {Key = k; AltKey = 0}
+    static member FromString(str: string) = 
+        let v = str.Split('.')
+        let k = v.[0] |> Int32.Parse
+        let a = 
+            if v.Length = 2 then
+                v.[1] |> Int32.Parse
+            else
+                0
+        {Key = k; AltKey = a}
 
 [<CLIMutable>]
 type XivSheetReference =    
@@ -112,7 +128,7 @@ type XivRow(sheet : IXivSheet, data : string []) =
 
     // some sheet has duplicate key, they have xxx.y format
     // e.g. AnimaWeapon5SpiritTalk
-    member val Key = data.[0].Split('.').[0] |> int
+    member val Key = XivKey.FromString(data.[0])
 
     override x.ToString() = 
         let sb = new Text.StringBuilder()
@@ -151,6 +167,13 @@ type XivRow(sheet : IXivSheet, data : string []) =
     member x.AsRaw(str) = 
         x.AsRaw(sheet.Header.GetIndex(str), true)
 
+    member x.AsRawArray<'T>(prefix, len) = 
+        [|
+            for i = 0 to len - 1 do 
+                let key = sprintf "%s[%i]" prefix i
+                yield (x.AsRaw(key))
+        |]
+
     member x.As<'T>(id, ?includeKey : bool) =
         let id = x.AdjustId(id, includeKey)
         castValue(id) |> unbox<'T>
@@ -181,9 +204,11 @@ type XivRow(sheet : IXivSheet, data : string []) =
         
 
 and IXivSheet = 
-    inherit Collections.Generic.IEnumerable<Collections.Generic.KeyValuePair<int32, XivRow>>
+    inherit Collections.Generic.IEnumerable<Collections.Generic.KeyValuePair<XivKey, XivRow>>
+    abstract IsMultiRow : bool
     abstract Header : XivHeader
-    abstract Item : RowKeyType -> XivRow
+    abstract Item : int -> XivRow
+    abstract Item : int * int -> XivRow
     abstract Collection : IXivCollection
     abstract Name : string
     abstract FieldTracer : Collections.Generic.HashSet<int> option
@@ -191,7 +216,8 @@ and IXivSheet =
 
 and IXivCollection = 
     abstract GetSheet : string -> IXivSheet
-    abstract GetSelectedSheet : string * ?names : string[] * ?ids : int [] -> IXivSheet
+    abstract GetSheet : string * names : string[] -> IXivSheet
+    abstract GetSheet : string * ids : int[] -> IXivSheet
     abstract IsSheet  : string -> bool
     abstract SheetExists : string -> bool
     abstract GetCsvParser : string -> seq<string []>

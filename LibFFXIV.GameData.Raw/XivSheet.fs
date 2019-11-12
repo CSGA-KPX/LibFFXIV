@@ -8,6 +8,7 @@ type XivSheet (name : string, col : IXivCollection) as x =
     let mutable hdr  = None
     let mutable data = None
     let mutable tracer = None
+    let mutable IsMulti = false
     do
         let csv = col.GetCsvParser(name)
         let header = 
@@ -22,20 +23,22 @@ type XivSheet (name : string, col : IXivCollection) as x =
 
         hdr  <- Some(new XivHeader(header))
         data <-
-            [|
+            seq {
                 for fields in csv |> Seq.skip 3 do 
                     let row = new XivRow(x :> IXivSheet, fields)
+                    if row.Key.AltKey <> 0 && (not IsMulti) then IsMulti <- true
                     yield row.Key, row
-            |]
+            }
             |> readOnlyDict
             |> Some
 
     interface IXivSheet with
+        member x.IsMultiRow = IsMulti
         member x.Header = hdr.Value
         member x.Collection = col
         member x.Name = name
-        member x.Item k = data.Value.[k]
-
+        member x.Item k = data.Value.[XivKey.FromKey(k)]
+        member x.Item (k,a) = data.Value.[{Key = k; AltKey = a}]
         member x.GetEnumerator() = 
             data.Value.GetEnumerator()
 
@@ -54,6 +57,7 @@ type XivSelectedSheet (name : string, col : IXivCollection, includeNames : strin
     let mutable hdr  = None
     let mutable data = None
     let mutable tracer = None
+    let mutable IsMulti = false
     do
         let csv = col.GetCsvParser(name)
         let headerItems = 
@@ -88,16 +92,19 @@ type XivSelectedSheet (name : string, col : IXivCollection, includeNames : strin
                                 yield fields.[i]
                         |]
                     let row = new XivRow(x :> IXivSheet, selected)
+                    if row.Key.AltKey <> 0 && (not IsMulti) then IsMulti <- true
                     yield row.Key, row
             }
             |> readOnlyDict
             |> Some
 
     interface IXivSheet with
+        member x.IsMultiRow = IsMulti
         member x.Header = hdr.Value
         member x.Collection = col
         member x.Name = name
-        member x.Item k = data.Value.[k]
+        member x.Item k = data.Value.[XivKey.FromKey(k)]
+        member x.Item (k,a) = data.Value.[{Key = k; AltKey = a}]
 
         member x.GetEnumerator() = 
             data.Value.GetEnumerator()
@@ -192,12 +199,19 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
             }
 
         /// Manual initialize a XivSheetLimited, overrides sheet cache if exists.
-        member x.GetSelectedSheet(name, ?names, ?ids) = 
-            let names = defaultArg names [||]
-            let ids   = defaultArg ids   [||]
-
+        member x.GetSheet(name, names) = 
             printfn "debug : init select sheet %s" name
-            let sheet = new XivSelectedSheet(name, x, names, ids) :> IXivSheet
+            let sheet = new XivSelectedSheet(name, x, names, [||]) :> IXivSheet
+
+            if enableCaching then cache.Add(name, sheet)
+
+            if enableTracing then sheet.EnableTracing()
+            sheet
+
+        /// Manual initialize a XivSheetLimited, overrides sheet cache if exists.
+        member x.GetSheet(name, ids) = 
+            printfn "debug : init select sheet %s" name
+            let sheet = new XivSelectedSheet(name, x, [||], ids) :> IXivSheet
 
             if enableCaching then cache.Add(name, sheet)
 
