@@ -204,7 +204,7 @@ type XivRow(sheet : IXivSheet, data : string []) =
         
 
 and IXivSheet = 
-    inherit Collections.Generic.IEnumerable<Collections.Generic.KeyValuePair<XivKey, XivRow>>
+    inherit Collections.Generic.IEnumerable<XivRow>
     abstract IsMultiRow : bool
     abstract Header : XivHeader
     abstract Item : int -> XivRow

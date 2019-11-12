@@ -39,11 +39,12 @@ type XivSheet (name : string, col : IXivCollection) as x =
         member x.Name = name
         member x.Item k = data.Value.[XivKey.FromKey(k)]
         member x.Item (k,a) = data.Value.[{Key = k; AltKey = a}]
-        member x.GetEnumerator() = 
-            data.Value.GetEnumerator()
 
         member x.GetEnumerator() = 
-            data.Value.GetEnumerator() :>IEnumerator
+            data.Value.Values.GetEnumerator()
+
+        member x.GetEnumerator() = 
+            data.Value.Values.GetEnumerator() :>IEnumerator
 
         member x.FieldTracer = tracer
 
@@ -107,10 +108,10 @@ type XivSelectedSheet (name : string, col : IXivCollection, includeNames : strin
         member x.Item (k,a) = data.Value.[{Key = k; AltKey = a}]
 
         member x.GetEnumerator() = 
-            data.Value.GetEnumerator()
+            data.Value.Values.GetEnumerator()
 
         member x.GetEnumerator() = 
-            data.Value.GetEnumerator() :>IEnumerator
+            data.Value.Values.GetEnumerator() :>IEnumerator
 
         member x.FieldTracer = tracer
 
