@@ -3,121 +3,70 @@ open System
 open System.Collections
 open System.Collections.Generic
 
-type XivSheet (name : string, col : IXivCollection) as x = 
+type XivSheet(name : string, col : IXivCollection) = 
     static let headetLength = 3
-    let mutable hdr  = None
-    let mutable data = None
+    let mutable hdr  = col.GetSheetHeader(name)
+    let mutable data = null
     let mutable tracer = None
     let mutable IsMulti = false
-    do
-        let csv = col.GetCsvParser(name)
-        let header = 
-            let s = csv |> Seq.take headetLength |> Seq.toArray
-            Array.map3 (fun a b c -> 
-                {
-                    XivHeaderItem.OrignalKeyName = a
-                    XivHeaderItem.ColumnName     = b
-                    XivHeaderItem.TypeName       = c
-                }    
-            ) s.[0] s.[1] s.[2]
+    let mutable selectId = None
 
-        hdr  <- Some(new XivHeader(header))
-        data <-
-            seq {
-                for fields in csv |> Seq.skip 3 do 
-                    let row = new XivRow(x :> IXivSheet, fields)
-                    if row.Key.AltKey <> 0 && (not IsMulti) then IsMulti <- true
-                    yield row.Key, row
-            }
-            |> readOnlyDict
-            |> Some
-
-    interface IXivSheet with
-        member x.IsMultiRow = IsMulti
-        member x.Header = hdr.Value
-        member x.Collection = col
-        member x.Name = name
-        member x.Item k = data.Value.[XivKey.FromKey(k)]
-        member x.Item (k,a) = data.Value.[{Key = k; AltKey = a}]
-
-        member x.GetEnumerator() = 
-            data.Value.Values.GetEnumerator()
-
-        member x.GetEnumerator() = 
-            data.Value.Values.GetEnumerator() :>IEnumerator
-
-        member x.FieldTracer = tracer
-
-        member x.EnableTracing () = 
-            if tracer = None then
-                tracer <- Some (new HashSet<int>())
-
-/// Parses only selected column, to save memory
-type XivSelectedSheet (name : string, col : IXivCollection, includeNames : string [], includeIds : int []) as x = 
-    static let headetLength = 3
-    let mutable hdr  = None
-    let mutable data = None
-    let mutable tracer = None
-    let mutable IsMulti = false
-    do
-        let csv = col.GetCsvParser(name)
-        let headerItems = 
-            let s = csv |> Seq.take headetLength |> Seq.toArray
-            Array.map3 (fun a b c -> 
-                {
-                    XivHeaderItem.OrignalKeyName = a
-                    XivHeaderItem.ColumnName     = b
-                    XivHeaderItem.TypeName       = c
-                }    
-            ) s.[0] s.[1] s.[2]
-        
-        let ids   = 
+    member internal x.SelectFields(?names : string [], ?ids : int []) = 
+        if not (isNull data) then
+            invalidOp "SelectFields called after InitData!"
+        selectId <-
             [|
+                let names = defaultArg names [||]
+                let ids = defaultArg ids [||]
                 yield 0 // key column
-                let oldHeader   = new XivHeader(headerItems)
-                yield! includeIds
-                for name in includeNames do 
-                    yield oldHeader.GetIndex(name)
+                yield! ids
+                for name in names do 
+                    yield hdr.GetIndex(name)
             |]
             |> Array.distinct
             |> Array.sort
-            
-        hdr <- Some(new XivHeader(ids |> Array.map (fun i -> headerItems.[i])))
-
-        data <-
-            seq {
-                for fields in csv |> Seq.skip 3 do 
-                    let selected = 
-                        [|
-                            for i in ids do 
-                                yield fields.[i]
-                        |]
-                    let row = new XivRow(x :> IXivSheet, selected)
-                    if row.Key.AltKey <> 0 && (not IsMulti) then IsMulti <- true
-                    yield row.Key, row
-            }
-            |> readOnlyDict
             |> Some
+
+        let items = hdr.Headers
+        hdr <- XivHeader(selectId.Value |> Array.map (fun i -> items.[i]))
+
+    member internal x.InitData() = 
+        let csv = 
+            let o = col.GetSheetData(name)
+            if selectId.IsSome then
+                let ids = selectId.Value
+                o |> Seq.map (fun fields -> [|for i in ids do yield fields.[i]|])
+            else
+                o
+        data <- seq {
+            for fields in csv do 
+                let row = new XivRow(x :> IXivSheet, fields)
+                yield row.Key, row
+        }
+        |> readOnlyDict
+
+        IsMulti <- data.Keys |> Seq.exists (fun key -> key.Alt <> 0)
+
 
     interface IXivSheet with
         member x.IsMultiRow = IsMulti
-        member x.Header = hdr.Value
+        member x.Header = hdr
         member x.Collection = col
         member x.Name = name
-        member x.Item k = data.Value.[XivKey.FromKey(k)]
-        member x.Item (k,a) = data.Value.[{Key = k; AltKey = a}]
+        member x.Item k = data.[XivKey.FromKey(k)]
+        member x.Item (k,a) = data.[{Main = k; Alt = a}]
 
         member x.GetEnumerator() = 
-            data.Value.Values.GetEnumerator()
+            data.Values.GetEnumerator()
 
         member x.GetEnumerator() = 
-            data.Value.Values.GetEnumerator() :>IEnumerator
+            data.Values.GetEnumerator() :>IEnumerator
 
         member x.FieldTracer = tracer
 
         member x.EnableTracing () = 
             if tracer = None then
-                tracer <- Some (new HashSet<int>())
+                tracer <- Some (HashSet<int>())
 
 type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : bool) = 
     static let archive = 
@@ -131,7 +80,9 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
             for e in archive.Entries do 
                 yield e.FullName, e
         } |> readOnlyDict
-    
+
+    let headerLength = 3
+
     let cache = new Dictionary<string, IXivSheet>()
 
     let getCsvName (name) = 
@@ -151,6 +102,26 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
                     yield (x :> IXivCollection).GetSheet(name)
         }
 
+    member private x.GetCsvParser(name : string) =
+        seq {
+            let sheetName = 
+                let i = x :> IXivCollection
+                let n = getCsvName(name)
+                let nl = getCsvNameLang(name)
+                if i.SheetExists(n) then
+                    n
+                else
+                    nl
+            use stream = entriesCache.[sheetName].Open()
+            use tr     = new IO.StreamReader(stream, new Text.UTF8Encoding(true))
+            use reader = new NotVisualBasic.FileIO.CsvTextFieldParser(tr)
+            reader.SetDelimiter(',')
+            reader.TrimWhiteSpace <- true
+            reader.HasFieldsEnclosedInQuotes <- true
+            while not reader.EndOfData do
+                yield reader.ReadFields()
+        }
+
     interface IDisposable with
         member x.Dispose () = 
             archive.Dispose()
@@ -161,10 +132,11 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
                 if cache.ContainsKey(name) then
                     cache.[name]
                 else
-                    printfn "debug : init sheet %s" name
-                    let sheet = new XivSheet(name, x) :> IXivSheet
-                    if enableCaching then cache.Add(name, sheet)
-                    sheet
+                    let sheet = new XivSheet(name, x)
+                    sheet.InitData()
+                    let isheet = sheet :> IXivSheet
+                    if enableCaching then cache.Add(name, isheet)
+                    isheet
             if enableTracing then sheet.EnableTracing()
             sheet
 
@@ -177,45 +149,50 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
             let nl = getCsvNameLang(str)
             i.SheetExists(n) || i.SheetExists(nl)
 
-        member x.GetCsvParser(name : string) =
-            seq {
-                let sheetName = 
-                    let i = x :> IXivCollection
-                    let n = getCsvName(name)
-                    let nl = getCsvNameLang(name)
-                    if i.SheetExists(n) then
-                        n
-                    else
-                        nl
-                use stream = entriesCache.[sheetName].Open()
-                use tr     = new IO.StreamReader(stream, new Text.UTF8Encoding(true))
-                use reader = new NotVisualBasic.FileIO.CsvTextFieldParser(tr)
-                //reader.TextFieldType <- Microsoft.VisualBasic.FileIO.FieldType.Delimited
-                reader.SetDelimiter(',')
-                //reader.CommentTokens <- Array.empty
-                reader.TrimWhiteSpace <- true
-                reader.HasFieldsEnclosedInQuotes <- true
-                while not reader.EndOfData do
-                    yield reader.ReadFields()
-            }
+        member x.GetSheetHeader(name : string) =
+            let csv = x.GetCsvParser(name)
+            let s = csv |> Seq.take headerLength |> Seq.toArray
 
-        /// Manual initialize a XivSheetLimited, overrides sheet cache if exists.
+            Array.map3 (fun a b c -> 
+                {
+                    XivHeaderItem.OrignalKeyName = a
+                    XivHeaderItem.ColumnName     = b
+                    XivHeaderItem.TypeName       = c
+                }    
+            ) s.[0] s.[1] s.[2]
+            |> XivHeader
+
+        member x.GetSheetData(name : string) =
+            x.GetCsvParser(name)
+            |> Seq.skip 3
+
+        /// Manual initialize a XivSheetLimited
         member x.GetSheet(name, names) = 
-            printfn "debug : init select sheet %s" name
-            let sheet = new XivSelectedSheet(name, x, names, [||]) :> IXivSheet
-
-            if enableCaching then cache.Add(name, sheet)
-
+            let sheet = 
+                if cache.ContainsKey(name) then
+                    cache.[name]
+                else
+                    let sheet = new XivSheet(name, x)
+                    sheet.SelectFields(names = names)
+                    sheet.InitData()
+                    let isheet = sheet :> IXivSheet
+                    if enableCaching then cache.Add(name, isheet)
+                    isheet
             if enableTracing then sheet.EnableTracing()
             sheet
 
-        /// Manual initialize a XivSheetLimited, overrides sheet cache if exists.
+        /// Manual initialize a XivSheetLimited
         member x.GetSheet(name, ids) = 
-            printfn "debug : init select sheet %s" name
-            let sheet = new XivSelectedSheet(name, x, [||], ids) :> IXivSheet
-
-            if enableCaching then cache.Add(name, sheet)
-
+            let sheet = 
+                if cache.ContainsKey(name) then
+                    cache.[name]
+                else
+                    let sheet = new XivSheet(name, x)
+                    sheet.SelectFields(ids = ids)
+                    sheet.InitData()
+                    let isheet = sheet :> IXivSheet
+                    if enableCaching then cache.Add(name, isheet)
+                    isheet
             if enableTracing then sheet.EnableTracing()
             sheet
 

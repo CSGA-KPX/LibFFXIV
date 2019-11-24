@@ -27,11 +27,11 @@ type XivLanguage =
 [<CLIMutable; Struct>]
 type XivKey = 
     {
-        Key    : int
-        AltKey : int
+        Main : int
+        Alt  : int
     }
 
-    static member FromKey(k) = {Key = k; AltKey = 0}
+    static member FromKey(k) = {Main = k; Alt = 0}
     static member FromString(str: string) = 
         let v = str.Split('.')
         let k = v.[0] |> Int32.Parse
@@ -40,7 +40,7 @@ type XivKey =
                 v.[1] |> Int32.Parse
             else
                 0
-        {Key = k; AltKey = a}
+        {Main = k; Alt = a}
 
 [<CLIMutable>]
 type XivSheetReference =    
@@ -85,7 +85,7 @@ type XivHeader(items : XivHeaderItem []) =
 
     member x.GetFieldType(str) = idToType.[ nameToId.[str] ]
 
-    member x.AllHeaders = items
+    member x.Headers = items
 
     override x.ToString() = 
         let sb = new Text.StringBuilder()
@@ -220,5 +220,6 @@ and IXivCollection =
     abstract GetSheet : string * ids : int[] -> IXivSheet
     abstract IsSheet  : string -> bool
     abstract SheetExists : string -> bool
-    abstract GetCsvParser : string -> seq<string []>
+    abstract GetSheetHeader : string -> XivHeader
+    abstract GetSheetData : string -> seq<string []>
     abstract DumpTracedFields : unit -> string
