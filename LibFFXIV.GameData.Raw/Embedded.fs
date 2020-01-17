@@ -1,13 +1,12 @@
 ﻿namespace LibFFXIV.GameData.Raw
+
 open System
 open System.Collections
 open System.Collections.Generic
 
-type XivSheet(name : string, col : IXivCollection) = 
-    static let headetLength = 3
-    let mutable hdr  = col.GetSheetHeader(name)
+type EmbeddedCsvSheet(name : string, col : IXivCollection<seq<string[]>>) =
+    let mutable hdr  = col.SheetStroage.GetSheetHeader(name, col.Language)
     let mutable data = null
-    let mutable tracer = None
     let mutable IsMulti = false
     let mutable selectId = None
 
@@ -32,7 +31,7 @@ type XivSheet(name : string, col : IXivCollection) =
 
     member internal x.InitData() = 
         let csv = 
-            let o = col.GetSheetData(name)
+            let o = col.SheetStroage.GetSheetData(name, col.Language)
             if selectId.IsSome then
                 let ids = selectId.Value
                 o |> Seq.map (fun fields -> [|for i in ids do yield fields.[i]|])
@@ -47,11 +46,10 @@ type XivSheet(name : string, col : IXivCollection) =
 
         IsMulti <- data.Keys |> Seq.exists (fun key -> key.Alt <> 0)
 
-
     interface IXivSheet with
         member x.IsMultiRow = IsMulti
         member x.Header = hdr
-        member x.Collection = col
+        member x.Collection = col :> IXivCollection
         member x.Name = name
         member x.Item k = data.[XivKey.FromKey(k)]
         member x.Item (k,a) = data.[{Main = k; Alt = a}]
@@ -62,13 +60,7 @@ type XivSheet(name : string, col : IXivCollection) =
         member x.GetEnumerator() = 
             data.Values.GetEnumerator() :>IEnumerator
 
-        member x.FieldTracer = tracer
-
-        member x.EnableTracing () = 
-            if tracer = None then
-                tracer <- Some (HashSet<int>())
-
-type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : bool) = 
+type EmbeddedCsvStroage private () = 
     static let archive = 
         let ResName = "LibFFXIV.GameData.Raw.raw-exd-all.zip"
         let assembly = Reflection.Assembly.GetExecutingAssembly()
@@ -81,37 +73,23 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
                 yield e.FullName, e
         } |> readOnlyDict
 
-    let headerLength = 3
+    static let headerLength = 3
 
-    let cache = new Dictionary<string, IXivSheet>()
+    static let instance = EmbeddedCsvStroage() :> ISheetStroage<seq<string []>>
 
-    let getCsvName (name) = 
-        String.Join(".", name, "csv")
+    static member Instance = instance
 
-    let getCsvNameLang (name) = 
-        String.Join(".", name, lang.ToString(), "csv")
+    member private x.GetEntryName(name, lang : XivLanguage) = 
+        let csvName = String.Join(".", name, "csv")
+        let csvNameLang = String.Join(".", name, lang.ToString(), "csv")
+        
+        if entriesCache.ContainsKey(csvName) then csvName
+        elif entriesCache.ContainsKey(csvNameLang) then csvNameLang
+        else failwithf "找不到表%s" name
 
-    let enableTracing = defaultArg enableTracing false
-    let enableCaching = not (defaultArg disableCaching false)
-
-    member x.GetAllSheets() = 
+    member private x.GetCsvParser(name : string, lang : XivLanguage) =
         seq {
-            for kv in entriesCache do 
-                if kv.Key.Contains(".csv") then
-                    let name = kv.Key.Split('.').[0]
-                    yield (x :> IXivCollection).GetSheet(name)
-        }
-
-    member private x.GetCsvParser(name : string) =
-        seq {
-            let sheetName = 
-                let i = x :> IXivCollection
-                let n = getCsvName(name)
-                let nl = getCsvNameLang(name)
-                if i.SheetExists(n) then
-                    n
-                else
-                    nl
+            let sheetName = x.GetEntryName(name, lang)
             use stream = entriesCache.[sheetName].Open()
             use tr     = new IO.StreamReader(stream, new Text.UTF8Encoding(true))
             use reader = new NotVisualBasic.FileIO.CsvTextFieldParser(tr)
@@ -122,35 +100,10 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
                 yield reader.ReadFields()
         }
 
-    interface IDisposable with
-        member x.Dispose () = 
-            archive.Dispose()
 
-    interface IXivCollection with
-        member x.GetSheet(name) = 
-            let sheet = 
-                if cache.ContainsKey(name) then
-                    cache.[name]
-                else
-                    let sheet = new XivSheet(name, x)
-                    sheet.InitData()
-                    let isheet = sheet :> IXivSheet
-                    if enableCaching then cache.Add(name, isheet)
-                    isheet
-            if enableTracing then sheet.EnableTracing()
-            sheet
-
-        member x.SheetExists (name) = 
-            entriesCache.ContainsKey(name)
-
-        member x.IsSheet (str) = 
-            let i = x :> IXivCollection
-            let n = getCsvName(str)
-            let nl = getCsvNameLang(str)
-            i.SheetExists(n) || i.SheetExists(nl)
-
-        member x.GetSheetHeader(name : string) =
-            let csv = x.GetCsvParser(name)
+    interface ISheetStroage<seq<string []>> with
+        member x.GetSheetHeader(name : string, lang : XivLanguage) =
+            let csv = x.GetCsvParser(name, lang)
             let s = csv |> Seq.take headerLength |> Seq.toArray
 
             Array.map3 (fun a b c -> 
@@ -162,9 +115,42 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
             ) s.[0] s.[1] s.[2]
             |> XivHeader
 
-        member x.GetSheetData(name : string) =
-            x.GetCsvParser(name)
+        member x.GetSheetData(name : string, lang : XivLanguage) =
+            x.GetCsvParser(name, lang)
             |> Seq.skip 3
+
+        member x.SheetExists(name : string, lang : XivLanguage) = 
+            try
+                x.GetEntryName(name, lang) |> ignore
+                true
+            with
+            | _ -> false
+
+type EmbeddedXivCollection(lang : XivLanguage, ?disableCaching : bool) = 
+
+    let ss = EmbeddedCsvStroage.Instance
+    let cache = new Dictionary<string, IXivSheet>()
+    let enableCaching = not (defaultArg disableCaching false)
+
+    interface IXivCollection<seq<string []>> with
+        
+        member x.SheetStroage = ss
+
+        member x.Language = lang
+
+        member x.SheetExists(name) = ss.SheetExists(name, lang)
+
+        member x.GetSheet(name) = 
+            let sheet = 
+                if cache.ContainsKey(name) then
+                    cache.[name]
+                else
+                    let sheet = new EmbeddedCsvSheet(name, x)
+                    sheet.InitData()
+                    let isheet = sheet :> IXivSheet
+                    if enableCaching then cache.Add(name, isheet)
+                    isheet
+            sheet
 
         /// Manual initialize a XivSheetLimited
         member x.GetSheet(name, names) = 
@@ -172,13 +158,12 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
                 if cache.ContainsKey(name) then
                     cache.[name]
                 else
-                    let sheet = new XivSheet(name, x)
+                    let sheet = new EmbeddedCsvSheet(name, x)
                     sheet.SelectFields(names = names)
                     sheet.InitData()
                     let isheet = sheet :> IXivSheet
                     if enableCaching then cache.Add(name, isheet)
                     isheet
-            if enableTracing then sheet.EnableTracing()
             sheet
 
         /// Manual initialize a XivSheetLimited
@@ -187,21 +172,10 @@ type XivCollection(lang : XivLanguage, ?enableTracing : bool, ?disableCaching : 
                 if cache.ContainsKey(name) then
                     cache.[name]
                 else
-                    let sheet = new XivSheet(name, x)
+                    let sheet = new EmbeddedCsvSheet(name, x)
                     sheet.SelectFields(ids = ids)
                     sheet.InitData()
                     let isheet = sheet :> IXivSheet
                     if enableCaching then cache.Add(name, isheet)
                     isheet
-            if enableTracing then sheet.EnableTracing()
             sheet
-
-        member x.DumpTracedFields() = 
-            if not enableTracing then
-                failwithf "Does not enable tracing!"
-            let sb = new Text.StringBuilder()
-            for kv in cache do 
-                let name = kv.Key
-                let ids  = kv.Value.FieldTracer.Value |> Seq.toArray |> Array.sort |> sprintf "%A"
-                sb.AppendFormat("    col.GetLimitedSheet(\"{0}\", ids = {1}) |> ignore\r\n", name, ids) |> ignore
-            sb.ToString()

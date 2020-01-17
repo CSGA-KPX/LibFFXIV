@@ -29,7 +29,7 @@ type MarketArea =
   | Kugane       =  7
   | Crystarium   = 10
 
-let TargetClientVersion     = "2019.11.08.0000.0000"
+let TargetClientVersion     = "2019.12.12.0000.0000"
 
 type PacketDirection = 
     | In   = 0

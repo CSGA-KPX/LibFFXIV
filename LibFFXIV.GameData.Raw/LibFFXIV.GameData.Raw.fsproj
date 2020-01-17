@@ -44,8 +44,10 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Common.fs" />
+    <Compile Include="XivHeader.fs" />
     <Compile Include="Base.fs" />
-    <Compile Include="XivSheet.fs" />
+    <Compile Include="Embedded.fs" />
     <Compile Include="Test.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="raw-exd-all.zip" />

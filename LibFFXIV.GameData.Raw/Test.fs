@@ -4,7 +4,7 @@ open LibFFXIV.GameData.Raw
 
 let Test() = 
     let t = DateTime.Now
-    let col = new XivCollection(XivLanguage.ChineseSimplified, true) :> IXivCollection
+    let col = new EmbeddedXivCollection(XivLanguage.ChineseSimplified) :> IXivCollection
     col.GetSheet("CompanyCraftSequence", [|6; 7; 8; 9; 10; 11; 12; 13|]) |> ignore
     col.GetSheet("CompanyCraftPart", [|3; 4; 5|]) |> ignore
     col.GetSheet("CompanyCraftProcess", [|1; 2; 3; 4; 5; 6; 7; 8; 9; 10; 11; 12; 13; 14; 15; 16; 17; 18; 19; 20; 21; 22;
@@ -18,7 +18,7 @@ let Test() =
         for part in ccs.AsRowArray("CompanyCraftPart", 8) do 
             for proc in part.AsRowArray("CompanyCraftProcess", 3) do 
                 let items = 
-                    proc.AsRowArray("SupplyItem", 12, false)
+                    proc.AsRowArray("SupplyItem", 12)
                     |> Array.map (fun r -> r.AsRow("Item"))
                     |> Array.map (fun r -> r.As<string>("Name"))
                 let amount = 
@@ -30,7 +30,6 @@ let Test() =
     |] |> Array.iter (fun (a, b) -> printfn "%s * %i" a b)
     let tt = DateTime.Now
     printfn "%O" (tt-t)
-    printfn "%s" (col.DumpTracedFields())
 
 [<EntryPoint>]
 let main args = 
