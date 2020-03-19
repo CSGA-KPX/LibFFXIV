@@ -7,9 +7,10 @@ type Opcodes =
     | CharacterNameLookupReply = 0x00F2us // 5.11
     | Chat         = 0x00BBus // 5.11
     | LinkshellList = 0x0000us //4.5 ULK才用，不管了
-    | PlayerSpawn   = 0x00A7us // 5.11
+    | PlayerSpawn   = 0x022Fus // 5.11
     | CFNotify       = 0x0377us //5.11
     | CFNotifyCHN    = 0x0081us //5.11
+    | UnknownInfoUpdate = 0x011Fus // 5.11
 
 type PacketTypes = 
     | None             = 0x0000us

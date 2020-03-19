@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibFFXIV.Network", "LibFFXIV.Network\LibFFXIV.Network.fsproj", "{84AE55EC-118D-464A-8C79-BC34B57626AF}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "LibFFXIV.GameData.Raw-test", "LibFFXIV.GameData.Raw-test\LibFFXIV.GameData.Raw-test.fsproj", "{EB978439-CC00-4D2C-8C91-6D3EC6F46404}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{84AE55EC-118D-464A-8C79-BC34B57626AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84AE55EC-118D-464A-8C79-BC34B57626AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{84AE55EC-118D-464A-8C79-BC34B57626AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB978439-CC00-4D2C-8C91-6D3EC6F46404}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB978439-CC00-4D2C-8C91-6D3EC6F46404}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB978439-CC00-4D2C-8C91-6D3EC6F46404}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB978439-CC00-4D2C-8C91-6D3EC6F46404}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -32,7 +32,12 @@ type XivHeader(items : XivHeaderItem []) =
     
     member x.GetIndex(str) = nameToId.[str]
 
-    member x.GetFieldType(id) = idToType.[id]
+    member x.GetFieldType(id) = 
+        let t = idToType.[id]
+        if t.ToLowerInvariant() = "row" then
+            items.[id].ColumnName
+        else
+            t
 
     member x.GetFieldType(str) = idToType.[ nameToId.[str] ]
 
