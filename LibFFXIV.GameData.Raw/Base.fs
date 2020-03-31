@@ -6,6 +6,7 @@ type ISheetStroage<'T> =
     abstract SheetExists : string * XivLanguage -> bool
     abstract GetSheetHeader : string * XivLanguage -> XivHeader
     abstract GetSheetData : string * XivLanguage -> 'T
+    abstract GetSheetNames : unit -> seq<string>
 
 type XivRow(sheet : IXivSheet, data : string []) = 
 
@@ -15,7 +16,12 @@ type XivRow(sheet : IXivSheet, data : string []) =
             id
         else
             id + 1
+
+    member x.Sheet = sheet
+
     member val Key = XivKey.FromString(data.[0])
+
+    member x.RawData = data
 
     member x.As<'T when 'T :> IConvertible>(id : int, ?includeKey : bool) = 
         let id = adjustId(id, includeKey)
@@ -74,8 +80,10 @@ and IXivSheet =
     abstract Item : int * int -> XivRow
     abstract Collection : IXivCollection
     abstract Name : string
+    abstract ContainsKey : XivKey -> bool
 
 and IXivCollection = 
+    inherit Collections.Generic.IEnumerable<IXivSheet>
     abstract Language : XivLanguage
     abstract SheetExists : name : string -> bool
     abstract GetSheet : name : string -> IXivSheet

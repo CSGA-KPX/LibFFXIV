@@ -3,6 +3,7 @@ open System
 
 [<RequireQualifiedAccess>]
 type XivLanguage = 
+    | None
     | Japanese
     | English
     | German
@@ -13,6 +14,7 @@ type XivLanguage =
 
     override x.ToString() = 
         match x with
+        | None      -> ""
         | Japanese  -> "ja"
         | English   -> "en"
         | German    -> "de"

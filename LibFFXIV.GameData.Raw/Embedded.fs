@@ -60,14 +60,12 @@ type EmbeddedCsvSheet(name : string, col : IXivCollection<seq<string[]>>) =
         member x.GetEnumerator() = 
             data.Values.GetEnumerator() :>IEnumerator
 
-type EmbeddedCsvStroage private () = 
-    static let archive = 
-        let ResName = "LibFFXIV.GameData.Raw.raw-exd-all.zip"
-        let assembly = Reflection.Assembly.GetExecutingAssembly()
-        let stream = assembly.GetManifestResourceStream(ResName)
-        new IO.Compression.ZipArchive(stream, IO.Compression.ZipArchiveMode.Read)
+        member x.ContainsKey(key) = 
+            data.ContainsKey(key)
 
-    static let entriesCache = 
+type EmbeddedCsvStroage (archive : IO.Compression.ZipArchive, ?pathPrefix : string) = 
+    let prefix = defaultArg pathPrefix ""
+    let entriesCache = 
         seq {
             for e in archive.Entries do 
                 yield e.FullName, e
@@ -75,17 +73,23 @@ type EmbeddedCsvStroage private () =
 
     static let headerLength = 3
 
-    static let instance = EmbeddedCsvStroage() :> ISheetStroage<seq<string []>>
+    static let embeddedCsv =
+        let archive = 
+                let ResName = "LibFFXIV.GameData.Raw.raw-exd-all.zip"
+                let assembly = Reflection.Assembly.GetExecutingAssembly()
+                let stream = assembly.GetManifestResourceStream(ResName)
+                new IO.Compression.ZipArchive(stream, IO.Compression.ZipArchiveMode.Read)
+        EmbeddedCsvStroage(archive) :> ISheetStroage<seq<string []>>
 
-    static member Instance = instance
+    static member EmbeddedCsv = embeddedCsv
 
     member private x.GetEntryName(name, lang : XivLanguage) = 
-        let csvName = String.Join(".", name, "csv")
-        let csvNameLang = String.Join(".", name, lang.ToString(), "csv")
+        let csvName = prefix + String.Join(".", name, "csv")
+        let csvNameLang = prefix + String.Join(".", name, lang.ToString(), "csv")
         
         if entriesCache.ContainsKey(csvName) then csvName
         elif entriesCache.ContainsKey(csvNameLang) then csvNameLang
-        else failwithf "找不到表%s" name
+        else failwithf "找不到表%s : %s/%s" name csvName csvNameLang
 
     member private x.GetCsvParser(name : string, lang : XivLanguage) =
         seq {
@@ -126,14 +130,34 @@ type EmbeddedCsvStroage private () =
             with
             | _ -> false
 
-type EmbeddedXivCollection(lang : XivLanguage, ?disableCaching : bool) = 
+        member x.GetSheetNames() = 
+            seq {
+                for n in entriesCache.Keys do 
+                    if n.EndsWith(".csv") then
+                        yield (n.[0 .. n.Length - 4 - 1])
+            }
 
-    let ss = EmbeddedCsvStroage.Instance
+type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguage, disableCaching : bool) = 
     let cache = new Dictionary<string, IXivSheet>()
-    let enableCaching = not (defaultArg disableCaching false)
+    let enableCaching = not disableCaching
+
+    new (lang : XivLanguage, ?disableCaching : bool) = 
+        let disable = defaultArg disableCaching false
+        EmbeddedXivCollection (EmbeddedCsvStroage.EmbeddedCsv, lang, disable)
 
     interface IXivCollection<seq<string []>> with
         
+        member x.GetEnumerator() = 
+            (
+                seq {
+                for name in ss.GetSheetNames() do 
+                    yield (x :> IXivCollection<seq<string []>>).GetSheet(name)
+                }
+            ).GetEnumerator()
+
+        member x.GetEnumerator() = 
+            (x :> IXivCollection<seq<string []>>).GetEnumerator() :> IEnumerator
+
         member x.SheetStroage = ss
 
         member x.Language = lang
