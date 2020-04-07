@@ -10,6 +10,12 @@ type ItemCollectionText() =
     let col = new EmbeddedXivCollection(XivLanguage.ChineseSimplified) :> IXivCollection
 
     [<Test>]
+    member x.TestSeqRead() = 
+        let items = col.GetRows("Item")
+        for item in items do 
+            ()
+
+    [<Test>]
     member x.ItemHeader() = 
         let gil = col.GetSheet("Item").[1]
         gil.As<string>("Adjective") |> should equal "0"

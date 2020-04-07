@@ -74,10 +74,12 @@ type XivRow(sheet : IXivSheet, data : string []) =
 
 and IXivSheet = 
     inherit Collections.Generic.IEnumerable<XivRow>
+    /// 是否是多行表，如GilShop等
     abstract IsMultiRow : bool
     abstract Header : XivHeader
     abstract Item : int -> XivRow
     abstract Item : int * int -> XivRow
+    abstract Item : XivKey -> XivRow
     abstract Collection : IXivCollection
     abstract Name : string
     abstract ContainsKey : XivKey -> bool
@@ -86,8 +88,20 @@ and IXivCollection =
     inherit Collections.Generic.IEnumerable<IXivSheet>
     abstract Language : XivLanguage
     abstract SheetExists : name : string -> bool
+    /// 以流的形式获取数据，最小化内存占用
+    abstract GetRows  : name : string -> seq<XivRow>
+
+    /// 获取表及所有字段
+    ///
+    /// 会读取所有行以备随机访问
     abstract GetSheet : name : string -> IXivSheet
+    /// 获取只包含指定字段名的表
+    ///
+    /// 会读取所有行以备随机访问
     abstract GetSheet : name : string * names : string[] -> IXivSheet
+    /// 获取只包含指定字段的表
+    ///
+    /// 会读取所有行以备随机访问
     abstract GetSheet : name : string * ids : int[] -> IXivSheet
 
 type IXivCollection<'T> = 

@@ -4,6 +4,35 @@ open System
 open System.Collections
 open System.Collections.Generic
 
+type internal EmbeddedCsvRows(name : string, col : IXivCollection<seq<string[]>>) as x = 
+    let mutable hdr  = col.SheetStroage.GetSheetHeader(name, col.Language)
+
+    member val internal DataSeq = 
+        seq {
+            let csv = col.SheetStroage.GetSheetData(name, col.Language)
+            for fields in csv do 
+                let row = new XivRow(x :> IXivSheet, fields)
+                yield row
+        }
+
+    interface IXivSheet with
+        member x.IsMultiRow = raise<bool> (NotSupportedException())
+        member x.Header = hdr
+        member x.Collection = col :> IXivCollection
+        member x.Name = name
+
+        member x.Item (k : XivKey) = raise<XivRow> (NotSupportedException())
+        member x.Item (k : int) = raise<XivRow> (NotSupportedException())
+        member x.Item (k,a) = raise (NotSupportedException())
+        
+        member x.GetEnumerator() = 
+            x.DataSeq.GetEnumerator()
+
+        member x.GetEnumerator() = 
+            x.DataSeq.GetEnumerator() :>IEnumerator
+
+        member x.ContainsKey(key) = raise <| NotSupportedException()
+
 type EmbeddedCsvSheet(name : string, col : IXivCollection<seq<string[]>>) =
     let mutable hdr  = col.SheetStroage.GetSheetHeader(name, col.Language)
     let mutable data = null
@@ -53,6 +82,7 @@ type EmbeddedCsvSheet(name : string, col : IXivCollection<seq<string[]>>) =
         member x.Name = name
         member x.Item k = data.[XivKey.FromKey(k)]
         member x.Item (k,a) = data.[{Main = k; Alt = a}]
+        member x.Item key = data.[key]
 
         member x.GetEnumerator() = 
             data.Values.GetEnumerator()
@@ -163,6 +193,9 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
         member x.Language = lang
 
         member x.SheetExists(name) = ss.SheetExists(name, lang)
+
+        member x.GetRows(name : string) = 
+            EmbeddedCsvRows(name, x).DataSeq
 
         member x.GetSheet(name) = 
             let sheet = 

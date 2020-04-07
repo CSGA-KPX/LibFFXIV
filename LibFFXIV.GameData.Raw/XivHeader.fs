@@ -1,5 +1,6 @@
 ﻿namespace LibFFXIV.GameData.Raw
 open System
+open System.Collections.Generic
 
 type XivHeaderItem = 
     {
@@ -30,7 +31,14 @@ type XivHeader(items : XivHeaderItem []) =
                     yield item.TypeName
         |]
     
-    member x.GetIndex(str) = nameToId.[str]
+    member x.GetIndex(str) =
+        try
+            nameToId.[str]
+        with
+        | :? KeyNotFoundException as e -> 
+            printfn "找不到Key : %s" str
+            printfn "已知Key有：%s" (String.Join(" ", nameToId.Keys))
+            reraise()
 
     member x.GetFieldType(id) = 
         let t = idToType.[id]
@@ -42,11 +50,3 @@ type XivHeader(items : XivHeaderItem []) =
     member x.GetFieldType(str) = idToType.[ nameToId.[str] ]
 
     member x.Headers = items
-
-    override x.ToString() = 
-        let sb = new Text.StringBuilder()
-        for kv in nameToId do 
-            sb.AppendFormat("nameToId {0} -> {1}\r\n", kv.Key, kv.Value) |> ignore
-        for k in idToType do 
-            sb.AppendFormat("idToType {0}\r\n", k) |> ignore
-        sb.ToString()
