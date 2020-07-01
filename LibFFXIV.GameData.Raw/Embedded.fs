@@ -103,15 +103,13 @@ type EmbeddedCsvStroage (archive : IO.Compression.ZipArchive, ?pathPrefix : stri
 
     static let headerLength = 3
 
-    static let embeddedCsv =
+    static member GetEmbeddedCsv() =
         let archive = 
                 let ResName = "LibFFXIV.GameData.Raw.raw-exd-all.zip"
                 let assembly = Reflection.Assembly.GetExecutingAssembly()
                 let stream = assembly.GetManifestResourceStream(ResName)
                 new IO.Compression.ZipArchive(stream, IO.Compression.ZipArchiveMode.Read)
         EmbeddedCsvStroage(archive) :> ISheetStroage<seq<string []>>
-
-    static member EmbeddedCsv = embeddedCsv
 
     member private x.GetEntryName(name, lang : XivLanguage) = 
         let csvName = prefix + String.Join(".", name, "csv")
@@ -173,7 +171,7 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
 
     new (lang : XivLanguage, ?disableCaching : bool) = 
         let disable = defaultArg disableCaching false
-        EmbeddedXivCollection (EmbeddedCsvStroage.EmbeddedCsv, lang, disable)
+        EmbeddedXivCollection (EmbeddedCsvStroage.GetEmbeddedCsv(), lang, disable)
 
     interface IXivCollection<seq<string []>> with
         

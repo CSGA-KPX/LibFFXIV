@@ -130,7 +130,6 @@ type XIVBinaryReader(ms : IO.MemoryStream) =
 
 
 type ByteArray(buf : byte[]) = 
-    let buf = buf
     let hex = lazy (HexString.ToHex(buf))
 
     new (hex : string) = 
