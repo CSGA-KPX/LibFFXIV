@@ -91,6 +91,8 @@ and IXivCollection =
     /// 以流的形式获取数据，最小化内存占用
     abstract GetRows  : name : string -> seq<XivRow>
 
+    abstract ClearCache : unit -> unit
+
     /// 获取表及所有字段
     ///
     /// 会读取所有行以备随机访问

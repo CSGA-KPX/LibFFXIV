@@ -10,7 +10,7 @@ type Opcodes =
     | PlayerSpawn   = 0x029Dus // 5.15
     | CFNotify       = 0x031Fus //5.15
     | CFNotifyCHN    = 0x02EBus //5.15
-    | UnknownInfoUpdate = 0x0179us // 5.15
+    | UnknownInfoUpdate = 0x0179us // 5.15 藏宝图
 
 type PacketTypes = 
     | None             = 0x0000us

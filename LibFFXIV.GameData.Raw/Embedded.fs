@@ -165,13 +165,11 @@ type EmbeddedCsvStroage (archive : IO.Compression.ZipArchive, ?pathPrefix : stri
                         yield (n.[0 .. n.Length - 4 - 1])
             }
 
-type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguage, disableCaching : bool) = 
+type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguage) = 
     let cache = new Dictionary<string, IXivSheet>()
-    let enableCaching = not disableCaching
 
-    new (lang : XivLanguage, ?disableCaching : bool) = 
-        let disable = defaultArg disableCaching false
-        EmbeddedXivCollection (EmbeddedCsvStroage.GetEmbeddedCsv(), lang, disable)
+    new (lang : XivLanguage) = 
+        EmbeddedXivCollection (EmbeddedCsvStroage.GetEmbeddedCsv(), lang)
 
     interface IXivCollection<seq<string []>> with
         
@@ -195,6 +193,8 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
         member x.GetRows(name : string) = 
             EmbeddedCsvRows(name, x).DataSeq
 
+        member x.ClearCache() = cache.Clear()
+
         member x.GetSheet(name) = 
             let sheet = 
                 if cache.ContainsKey(name) then
@@ -203,7 +203,7 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
                     let sheet = new EmbeddedCsvSheet(name, x)
                     sheet.InitData()
                     let isheet = sheet :> IXivSheet
-                    if enableCaching then cache.Add(name, isheet)
+                    cache.Add(name, isheet)
                     isheet
             sheet
 
@@ -217,7 +217,7 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
                     sheet.SelectFields(names = names)
                     sheet.InitData()
                     let isheet = sheet :> IXivSheet
-                    if enableCaching then cache.Add(name, isheet)
+                    cache.Add(name, isheet)
                     isheet
             sheet
 
@@ -231,6 +231,6 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
                     sheet.SelectFields(ids = ids)
                     sheet.InitData()
                     let isheet = sheet :> IXivSheet
-                    if enableCaching then cache.Add(name, isheet)
+                    cache.Add(name, isheet)
                     isheet
             sheet
