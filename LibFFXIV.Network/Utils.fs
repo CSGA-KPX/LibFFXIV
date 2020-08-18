@@ -128,6 +128,27 @@ type XIVBinaryReader(ms : IO.MemoryStream) =
         let ms = new IO.MemoryStream(bytes)
         new XIVBinaryReader(ms)
 
+    /// 移除FF14文本中的Token字串
+    static member XivStringStripToken (bytes : byte []) = 
+        // 定义来自https://www.reddit.com/r/ffxiv/comments/1vey94/binary_file_format_for_combat_logs/
+        // 02 定义 长度 ... 03
+        // UTF8内不会出现0x02和0x03，可以直接扫描
+        use ms = new IO.MemoryStream()
+        let mutable idx = 0
+        while idx < bytes.Length do
+            let peek = bytes.[idx]
+            if peek <> 0x02uy then
+                ms.WriteByte(peek)
+            else
+                let typeCode = bytes.[idx + 1]
+                let length = bytes.[idx + 2]
+                let payload = bytes.[idx + 3 .. idx + 3 + (int length)] // check here
+                if (Array.last payload) <> 0x03uy then failwithf "Xiv token parse failed"
+                let writeBack = sprintf "<%i:%s>" typeCode (HexString.ToHex(payload))
+                let buf = Encoding.UTF8.GetBytes(writeBack)
+                ms.Write(buf, 0, buf.Length)
+                idx <- idx + 2 + (int length)
+        ms.ToArray()
 
 type ByteArray(buf : byte[]) = 
     let hex = lazy (HexString.ToHex(buf))
