@@ -10,7 +10,6 @@
     <Compile Include="XivHeader.fs" />
     <Compile Include="Base.fs" />
     <Compile Include="Embedded.fs" />
-    <Content Include="packages.config" />
     <EmbeddedResource Include="raw-exd-all.zip" />
     <None Include="Readme.md" />
   </ItemGroup>
