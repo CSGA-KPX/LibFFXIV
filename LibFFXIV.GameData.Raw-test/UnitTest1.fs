@@ -7,7 +7,7 @@ open FsUnitTyped
 
 [<TestFixture>]
 type ItemCollectionText() = 
-    let col = new EmbeddedXivCollection(XivLanguage.ChineseSimplified) :> IXivCollection
+    let col = new EmbeddedXivCollection(XivLanguage.None) :> IXivCollection
 
     [<Test>]
     member x.TestSeqRead() = 

@@ -109,7 +109,7 @@ type EmbeddedCsvStroage (archive : IO.Compression.ZipArchive, ?pathPrefix : stri
                 let assembly = Reflection.Assembly.GetExecutingAssembly()
                 let stream = assembly.GetManifestResourceStream(ResName)
                 new IO.Compression.ZipArchive(stream, IO.Compression.ZipArchiveMode.Read)
-        EmbeddedCsvStroage(archive) :> ISheetStroage<seq<string []>>
+        EmbeddedCsvStroage(archive, "ffxiv-datamining-cn-master/") :> ISheetStroage<seq<string []>>
 
     member private x.GetEntryName(name, lang : XivLanguage) = 
         let csvName = prefix + String.Join(".", name, "csv")
@@ -169,10 +169,13 @@ type EmbeddedXivCollection(ss : ISheetStroage<seq<string []>>, lang : XivLanguag
     let cache = new Dictionary<string, IXivSheet>()
 
     new (lang : XivLanguage) = 
-        EmbeddedXivCollection (EmbeddedCsvStroage.GetEmbeddedCsv(), lang)
+        new EmbeddedXivCollection (EmbeddedCsvStroage.GetEmbeddedCsv(), lang)
 
     interface IXivCollection<seq<string []>> with
         
+        /// 调用后清除缓存
+        member x.Dispose() = cache.Clear()
+
         member x.GetEnumerator() = 
             (
                 seq {

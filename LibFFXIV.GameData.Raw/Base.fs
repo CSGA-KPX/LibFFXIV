@@ -86,6 +86,7 @@ and IXivSheet =
 
 and IXivCollection = 
     inherit Collections.Generic.IEnumerable<IXivSheet>
+    inherit IDisposable
     abstract Language : XivLanguage
     abstract SheetExists : name : string -> bool
     /// 以流的形式获取数据，最小化内存占用
