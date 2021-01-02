@@ -4,6 +4,7 @@ open System
 open System.Collections
 open System.Collections.Generic
 
+
 type internal EmbeddedCsvRows(name : string, col : IXivCollection<seq<string[]>>) as x = 
     let mutable hdr  = col.SheetStroage.GetSheetHeader(name, col.Language)
 
@@ -35,9 +36,13 @@ type internal EmbeddedCsvRows(name : string, col : IXivCollection<seq<string[]>>
 
 type EmbeddedCsvSheet(name : string, col : IXivCollection<seq<string[]>>) =
     let mutable hdr  = col.SheetStroage.GetSheetHeader(name, col.Language)
-    let mutable data = null
+    let mutable data : IReadOnlyDictionary<_,_> = null
     let mutable IsMulti = false
     let mutable selectId = None
+
+    let getItem (key : XivKey) = 
+        if data.ContainsKey(key) then data.[key]
+        else raise <| KeyNotFoundException(sprintf "无法在%s中找到Key=%A" name key)
 
     member internal x.SelectFields(?names : string [], ?ids : int []) = 
         if not (isNull data) then
@@ -80,9 +85,9 @@ type EmbeddedCsvSheet(name : string, col : IXivCollection<seq<string[]>>) =
         member x.Header = hdr
         member x.Collection = col :> IXivCollection
         member x.Name = name
-        member x.Item k = data.[XivKey.FromKey(k)]
-        member x.Item (k,a) = data.[{Main = k; Alt = a}]
-        member x.Item key = data.[key]
+        member x.Item k = getItem(XivKey.FromKey(k))
+        member x.Item (k,a) = getItem({Main = k; Alt = a})
+        member x.Item key = getItem(key)
 
         member x.GetEnumerator() = 
             data.Values.GetEnumerator()
@@ -123,13 +128,10 @@ type EmbeddedCsvStroage (archive : IO.Compression.ZipArchive, ?pathPrefix : stri
         seq {
             let sheetName = x.GetEntryName(name, lang)
             use stream = entriesCache.[sheetName].Open()
-            use tr     = new IO.StreamReader(stream, new Text.UTF8Encoding(true))
-            use reader = new NotVisualBasic.FileIO.CsvTextFieldParser(tr)
-            reader.SetDelimiter(',')
-            reader.TrimWhiteSpace <- true
-            reader.HasFieldsEnclosedInQuotes <- true
-            while not reader.EndOfData do
-                yield reader.ReadFields()
+            use reader = new CsvParser.CsvReader(stream, Text.Encoding.UTF8)
+
+            while reader.MoveNext() do 
+                yield reader.Current |> Seq.toArray
         }
 
 

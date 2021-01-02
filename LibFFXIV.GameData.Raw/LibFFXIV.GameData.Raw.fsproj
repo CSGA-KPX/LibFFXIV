@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="CsvTextFieldParser" Version="1.2.1" />
+    <PackageReference Include="FastCsvParser" Version="1.1.1" />
   </ItemGroup>
 
   <ItemGroup>
