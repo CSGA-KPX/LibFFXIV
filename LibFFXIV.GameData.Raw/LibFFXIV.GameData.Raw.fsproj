@@ -10,6 +10,7 @@
     <Compile Include="XivHeader.fs" />
     <Compile Include="Base.fs" />
     <Compile Include="Embedded.fs" />
+    <Compile Include="Embedded_OLD.fs" />
     <EmbeddedResource Include="raw-exd-all.zip" />
     <None Include="Readme.md" />
   </ItemGroup>
