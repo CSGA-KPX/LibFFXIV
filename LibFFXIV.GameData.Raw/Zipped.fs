@@ -97,22 +97,3 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
             getFileName name |> ignore
             true
         with _ -> false
-
-
-
-module private Embedded =
-    let archive =
-        lazy
-            (let ResName = "LibFFXIV.GameData.Raw.raw-exd-all.zip"
-
-             let assembly =
-                 Reflection.Assembly.GetExecutingAssembly()
-
-             let stream =
-                 assembly.GetManifestResourceStream(ResName)
-
-             new ZipArchive(stream, ZipArchiveMode.Read))
-
-
-type EmbeddedXivCollection(lang) =
-    inherit ZippedXivCollection(lang, Embedded.archive.Force(), "ffxiv-datamining-cn-master/")

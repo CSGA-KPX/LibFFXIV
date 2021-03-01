@@ -3,14 +3,14 @@
 type Opcodes = 
     | LinkshellList = 0x0000us //4.5 ULK才用，不管了
     | None        = 0xFFFFus
-    | TradeLogData = 0x0187us // 5.3
-    | Market       = 0x02A4us // 5.3
-    | CharacterNameLookupReply = 0x0150us // 5.3
-    | Chat         = 0x00BBus // 5.3
-    | PlayerSpawn   = 0x00B5us // 5.3
-    | CFNotify       = 0x02A2us //5.3 Sample = 012100004820020800000100A402000000000000000000000000000000000000
-    | CFNotifyCHN    = 0x01E3us //5.3 Sample = A4020000040000000000000000000000
-    | UnknownInfoUpdate = 0x02B0us // 5.3 藏宝图
+    | TradeLogData = 0x028Cus // 5.31
+    | Market       = 0x015Eus // 5.31
+    | CharacterNameLookupReply = 0x03A3us // 5.31
+    | Chat         = 0x021Eus // 5.31
+    | PlayerSpawn   = 0x024Aus // 5.31
+    | CFNotify       = 0x01C0us //5.31 Sample = 012100004820020800000100A402000000000000000000000000000000000000
+    | CFNotifyCHN    = 0x0140us //5.31 Sample = A4020000040000000000000000000000
+    | UnknownInfoUpdate = 0x01F6us // 5.31 藏宝图
 
 type PacketTypes = 
     | None             = 0x0000us
@@ -30,7 +30,7 @@ type MarketArea =
   | Kugane       =  7
   | Crystarium   = 10
 
-let TargetClientVersion     = "2020.11.17.0000.0000"
+let TargetClientVersion     = "2020.12.21.0000.0000"
 
 type PacketDirection = 
     | In   = 0
