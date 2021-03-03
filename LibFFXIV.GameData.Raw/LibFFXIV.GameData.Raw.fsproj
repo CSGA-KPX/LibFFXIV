@@ -5,11 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="FSharp.TypeProviders.SDK\ProvidedTypes.fsi" />
+    <Compile Include="FSharp.TypeProviders.SDK\ProvidedTypes.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="XivHeader.fs" />
     <Compile Include="Base.fs" />
     <Compile Include="Zipped.fs" />
+    <Compile Include="TypeProvider.fs" />
     <None Include="Readme.md" />
   </ItemGroup>
 

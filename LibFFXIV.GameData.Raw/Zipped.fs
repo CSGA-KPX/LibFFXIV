@@ -92,6 +92,12 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
 
         sheet
 
+    override x.GetAllSheetNames () =
+        entriesCache.Keys
+        |> Seq.filter (fun path -> path.EndsWith(".csv"))
+        |> Seq.map (fun path -> 
+            path.[0 .. path.IndexOf(".") - 1].Replace(prefix, ""))
+
     override x.SheetExists (name) =
         try
             getFileName name |> ignore

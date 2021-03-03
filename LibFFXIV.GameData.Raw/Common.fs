@@ -25,6 +25,19 @@ type XivLanguage =
         | ChineseSimplified -> "chs"
         | ChineseTraditional -> "cht"
 
+    static member FromString(str : string) = 
+        match str.ToLowerInvariant() with
+        | "" | "none" -> None
+        | "ja" -> Japanese
+        | "en" -> English
+        | "de" -> German
+        | "fr" -> French
+        | "kr" -> Korean
+        | "chs" -> ChineseSimplified
+        | "cht" -> ChineseTraditional
+        | unk -> failwithf "未知语言名称%s" unk
+
+
 [<Struct>]
 type XivKey =
     { Main : int

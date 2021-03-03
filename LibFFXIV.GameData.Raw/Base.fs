@@ -137,6 +137,8 @@ type XivCollection(lang) =
 
     member x.ClearCache () = cache.Clear()
 
+    abstract GetAllSheetNames : unit -> seq<string>
+
     abstract SheetExists : string -> bool
 
     abstract GetSheetCore : name:string * fields:string [] * ids:int [] -> XivSheet
