@@ -1,4 +1,6 @@
-﻿// Copyright (c) Microsoft Corporation, Tomas Petricek, Gustavo Guerra, and other contributors
+﻿#nowarn "3218"
+
+// Copyright (c) Microsoft Corporation, Tomas Petricek, Gustavo Guerra, and other contributors
 // 
 // Licensed under the MIT License see LICENSE.md in this project
 

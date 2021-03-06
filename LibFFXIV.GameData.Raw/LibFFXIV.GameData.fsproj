@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Raw\Common.fs" />
+    <Compile Include="Raw\XivHeader.fs" />
+    <Compile Include="Raw\Base.fs" />
+    <Compile Include="Raw\Zipped.fs" />
+    <Compile Include="Provided\FSharp.TypeProviders.SDK\ProvidedTypes.fsi" />
+    <Compile Include="Provided\FSharp.TypeProviders.SDK\ProvidedTypes.fs" />
+    <Compile Include="Provided\TypedCell.fs" />
+    <Compile Include="Provided\TPUtilsV2.fs" />
+    <Compile Include="Provided\TPUtils.fs" />
+    <Compile Include="Provided\TPImplementation.fs" />
+    <Compile Include="Provided\TypeProvider.fs" />
+    <None Include="Readme.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FastCsvParser" Version="1.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,27 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="FSharp.TypeProviders.SDK\ProvidedTypes.fsi" />
-    <Compile Include="FSharp.TypeProviders.SDK\ProvidedTypes.fs" />
-    <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Common.fs" />
-    <Compile Include="XivHeader.fs" />
-    <Compile Include="Base.fs" />
-    <Compile Include="Zipped.fs" />
-    <Compile Include="TypeProvider.fs" />
-    <None Include="Readme.md" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="FastCsvParser" Version="1.1.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="5.0.0" />
-  </ItemGroup>
-
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
 </Project>

@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LibFFXIV.GameData.Raw\LibFFXIV.GameData.Raw.fsproj" />
+    <ProjectReference Include="..\LibFFXIV.GameData.Raw\LibFFXIV.GameData.fsproj" />
   </ItemGroup>
 
 </Project>
