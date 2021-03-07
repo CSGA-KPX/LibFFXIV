@@ -28,35 +28,20 @@ let private ProvideCellTypeCore (tp : TypeProviderForNamespaces) (hdr : XivHeade
             (fun () ->
                 let shtName = hdr.TypeName
 
-                ProvidedProperty(
-                    propertyName = "AsRow",
-                    propertyType = ProvideRowType tp shtName,
-                    getterCode =
-                        (fun [ cell ] ->
+                ProvidedMethod(
+                    methodName = "AsRow",
+                    parameters = List.empty,
+                    returnType = ProvideRowType tp shtName,
+                    invokeCode =
+                        (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
                             <@@ let cell = (%%cell : TypedCell)
-                                let key = cell.AsInt
+                                let key = cell.AsInt()
 
                                 let sht =
                                     cell.Row.Sheet.Collection.GetSheet(shtName)
 
                                 sht.Item(key) @@>)
                 ))
-    (*
-        let shtName = hdr.TypeName
-        let prop =
-            ProvidedProperty(
-                propertyName = "AsRow",
-                propertyType = ProvideRowType tp shtName,
-                getterCode =
-                    (fun [ cell ] ->
-                        <@@ let cell = (%%cell : TypedCell)
-                            let key = cell.AsInt
-
-                            let sht =
-                                cell.Row.Sheet.Collection.GetSheet(shtName)
-
-                            sht.Item(key) @@>)
-            )*)
 
     cellType
 
