@@ -3,6 +3,8 @@
 open System
 open System.Collections.Generic
 
+open LibFFXIV.GameData
+
 
 type XivRow(sheet : XivSheet, data : string []) =
 

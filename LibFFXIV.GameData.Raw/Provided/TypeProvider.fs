@@ -9,6 +9,7 @@ open ProviderImplementation.ProvidedTypes
 
 open FSharp.Core.CompilerServices
 
+open LibFFXIV.GameData
 open LibFFXIV.GameData.Raw
 
 

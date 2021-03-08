@@ -6,7 +6,7 @@
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Raw\Common.fs" />
+    <Compile Include="Common.fs" />
     <Compile Include="Raw\XivHeader.fs" />
     <Compile Include="Raw\Base.fs" />
     <Compile Include="Raw\Zipped.fs" />
@@ -17,7 +17,6 @@
     <Compile Include="Provided\TPUtils.fs" />
     <Compile Include="Provided\TPImplementation.fs" />
     <Compile Include="Provided\TypeProvider.fs" />
-    <None Include="Readme.md" />
   </ItemGroup>
 
   <ItemGroup>

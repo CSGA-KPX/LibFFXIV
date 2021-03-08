@@ -1,4 +1,4 @@
-﻿namespace LibFFXIV.GameData.Raw
+﻿namespace LibFFXIV.GameData
 
 open System
 
