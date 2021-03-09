@@ -79,6 +79,11 @@ type XivSheet(name, col : XivCollection, hdr) =
     let mutable cacheInitialized = false
     let mutable rowSeq : seq<XivRow> = Seq.empty
 
+    let metaInfo = Dictionary<string, obj>()
+
+    // 储存临时数据
+    member internal x.MetaInfo = metaInfo :> IDictionary<_, _>
+
     member x.EnsureCached () =
         if not cacheInitialized then
             for row in rowSeq do

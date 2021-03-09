@@ -20,7 +20,8 @@ let asm = Assembly.GetExecutingAssembly()
 type TypedHeaderItem =
     | NoName of KeyIdx : int * TypeName : string
     | Normal of ColName : string * TypeName : string
-    | Array of BaseName : string * Template : string * TypeName : string * Range : (int * int) []
+    | Array1D of BaseName : string * Template : string * TypeName : string * Range : CellRange
+    | Array2D of BaseName : string * Template : string * TypeName : string * Range : (CellRange * CellRange)
 
 let private regex =
     Regex(@"[\(\[]([0-9]+)[\)\]]", RegexOptions.Compiled)
@@ -55,17 +56,19 @@ let ParseHeaders(hdrs : XivHeaderItem []) =
         | "" ->
             NoName(hdr.OrignalKeyName |> int, hdr.TypeName)
             |> ret.Add
-        | n when n.Contains("(") || n.Contains("[") ->
-            let baseName, tmpl, indexes = ParseArrayIndex(n)
+        | name ->
+            let baseName, tmpl, indexes = ParseArrayIndex(name)
+            if indexes.Length = 0 then
+                Normal(hdr.ColumnName, hdr.TypeName)
+                |> ret.Add
+            else
+                if not <| indexed.ContainsKey(tmpl) then
+                    indexed.[tmpl] <-
+                        {| BaseName = baseName
+                           TypeName = hdr.TypeName
+                           Indexes = ResizeArray<int []>() |}
 
-            if not <| indexed.ContainsKey(tmpl) then
-                indexed.[tmpl] <-
-                    {| BaseName = baseName
-                       TypeName = hdr.TypeName
-                       Indexes = ResizeArray<int []>() |}
-
-            indexed.[tmpl].Indexes.Add(indexes)
-        | _ -> Normal(hdr.ColumnName, hdr.TypeName) |> ret.Add
+                indexed.[tmpl].Indexes.Add(indexes)
 
     for kv in indexed do
         let dimension = kv.Value.Indexes.[0].Length
@@ -81,9 +84,13 @@ let ParseHeaders(hdrs : XivHeaderItem []) =
                         mins.[idx] <- min value mins.[idx]
                         maxs.[idx] <- max value maxs.[idx]))
 
-        let ranges = Array.zip mins maxs
+        let ranges =
+            Array.map2 (fun min max -> { From = min; To = max }) mins maxs
 
-        Array(kv.Value.BaseName, kv.Key, kv.Value.TypeName, ranges)
+        match ranges with
+        | [| r |] -> Array1D(kv.Value.BaseName, kv.Key, kv.Value.TypeName, r)
+        | [| r1; r2 |] -> Array2D(kv.Value.BaseName, kv.Key, kv.Value.TypeName, (r1, r2))
+        | _ -> failwithf "%s列维度不正确，应当为1/2维数组" kv.Value.BaseName
         |> ret.Add
 
     ret.ToArray()

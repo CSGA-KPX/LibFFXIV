@@ -69,7 +69,7 @@ let private ProvideRowTypeCore (tp : TypeProviderForNamespaces) (shtName : strin
         | TypedHeaderItem.NoName(colIdx, typeName) ->
             let prop =
                 ProvidedProperty(
-                    propertyName = sprintf "UnknownCol_%i" colIdx,
+                    propertyName = sprintf "UNKNOWN_%i" colIdx,
                     propertyType = ProvideCellType tp typeName,
                     getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), colIdx) @@>)
                 )
@@ -92,26 +92,99 @@ let private ProvideRowTypeCore (tp : TypeProviderForNamespaces) (shtName : strin
 
             prop.AddXmlDoc(xmldoc)
             ret <- prop :: ret
-        | TypedHeaderItem.Array(name, tmpl, typeName, ranges) ->
+
+        | TypedHeaderItem.Array1D(name, tmpl, typeName, r0) ->
+            let cellType =
+                ProvidedTypeDefinition(
+                    asm,
+                    ns,
+                    sprintf "Cell_%s_%s" shtName typeName,
+                    Some typeof<TypedArrayCell1D>,
+                    hideObjectMethods = true,
+                    nonNullable = true
+                )
+
+            if hdrCache.ContainsKey(typeName) then
+                cellType.AddMemberDelayed
+                    (fun () -> // this是最后一个，因为定义是empty所以只有一个this
+                        ProvidedMethod(
+                            methodName = "AsRows",
+                            parameters = List.empty,
+                            returnType = (ProvideRowType tp typeName).MakeArrayType(),
+                            invokeCode =
+                                (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
+                                    <@@ let cell = (%%cell : TypedArrayCell1D)
+                                        let sht =
+                                            cell.Row.Sheet.Collection.GetSheet(typeName)
+
+                                        cell.AsInts()
+                                        |> Array.map (fun key -> sht.Item(key))@@>)
+                        ))
+
+            let f0, t0 = r0.From, r0.To
             let prop =
                 ProvidedProperty(
-                    propertyName = "KEY_" + name,
-                    propertyType = typeof<string>,
-                    getterCode = (fun _ -> <@@ tmpl @@>)
+                    propertyName = name,
+                    propertyType = cellType,
+                    getterCode = (fun [ row ] -> <@@ TypedArrayCell1D((%%row : XivRow), tmpl, f0, t0) @@>)
                 )
 
             let doc =
                 Text
                     .StringBuilder() // 诡异：XmlDoc中\r\n无效，\r\n\r\n才能用
                     .AppendFormat("字段模板 {0}->{1} : {2}\r\n\r\n", shtName, tmpl, typeName)
-
-            for i = 0 to ranges.Length - 1 do
-                let min, max = ranges.[i]
-
-                doc.AppendFormat("索引 {0} : {1} -> {2}\r\n\r\n", i, min, max)
-                |> ignore
+                    .AppendFormat("范围 {0} -> {1}\r\n\r\n", r0.From, r0.To)
 
             prop.AddXmlDoc(doc.ToString())
+            tp.AddNamespace(ns, [cellType])
+            ret <- prop :: ret
+
+        | TypedHeaderItem.Array2D(name, tmpl, typeName, (r0, r1)) ->
+            let cellType =
+                ProvidedTypeDefinition(
+                    asm,
+                    ns,
+                    sprintf "Cell_%s_%s" shtName typeName,
+                    Some typeof<TypedArrayCell2D>,
+                    hideObjectMethods = true,
+                    nonNullable = true
+                )
+
+            if hdrCache.ContainsKey(typeName) then
+                cellType.AddMemberDelayed
+                    (fun () -> // this是最后一个，因为定义是empty所以只有一个this
+                        ProvidedMethod(
+                            methodName = "AsRows",
+                            parameters = List.empty,
+                            returnType = (ProvideRowType tp typeName).MakeArrayType(2),
+                            invokeCode =
+                                (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
+                                    <@@ let cell = (%%cell : TypedArrayCell2D)
+                                        let sht =
+                                            cell.Row.Sheet.Collection.GetSheet(typeName)
+
+                                        cell.AsInts()
+                                        |> Array2D.map (fun key -> sht.Item(key))@@>)
+                        ))
+
+            let f0, t0 = r0.From, r0.To
+            let f1, t1 = r1.From, r1.To
+            let prop =
+                ProvidedProperty(
+                    propertyName = name,
+                    propertyType = cellType,
+                    getterCode = (fun [ row ] -> <@@ TypedArrayCell2D((%%row : XivRow), tmpl, f0, t0, f1, t1) @@>)
+                )
+
+            let doc =
+                Text
+                    .StringBuilder() // 诡异：XmlDoc中\r\n无效，\r\n\r\n才能用
+                    .AppendFormat("字段模板 {0}->{1} : {2}\r\n\r\n", shtName, tmpl, typeName)
+                    .AppendFormat("范围0 : {0} -> {1}\r\n\r\n", r0.From, r0.To)
+                    .AppendFormat("范围1 : {0} -> {1}\r\n\r\n", r1.From, r1.To)
+
+            prop.AddXmlDoc(doc.ToString())
+            tp.AddNamespace(ns, [cellType])
             ret <- prop :: ret
 
     tyRowType.AddMembers ret
