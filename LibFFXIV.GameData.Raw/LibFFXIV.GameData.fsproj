@@ -13,10 +13,11 @@
     <Compile Include="Provided\FSharp.TypeProviders.SDK\ProvidedTypes.fsi" />
     <Compile Include="Provided\FSharp.TypeProviders.SDK\ProvidedTypes.fs" />
     <Compile Include="Provided\TypedCell.fs" />
-    <Compile Include="Provided\TPUtilsV2.fs" />
-    <Compile Include="Provided\TPUtils.fs" />
-    <Compile Include="Provided\TPImplementation.fs" />
-    <Compile Include="Provided\TypeProvider.fs" />
+    <Compile Include="Provided\TypedArrayCell.fs" />
+    <Compile Include="Provided\TypedHeaderItem.fs" />
+    <Compile Include="Provided\XivHeaderCache.fs" />
+    <Compile Include="Provided\ProviderContext.fs" />
+    <Compile Include="Provided\XivCollectionProvider.fs" />
   </ItemGroup>
 
   <ItemGroup>
