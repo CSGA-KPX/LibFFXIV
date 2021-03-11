@@ -63,7 +63,7 @@ type XivRow(sheet : XivSheet, data : string []) =
         let r =
             x.AsRowRef(adjustId (id, includeKey), true)
 
-        sheet.Collection.GetSheet(r.Sheet).[r.Key]
+        sheet.Collection.GetSheet(r.Sheet).GetItem(r.Key)
 
     member x.AsRow (str : string) =
         x.AsRow(sheet.Header.GetIndex(str), true)
@@ -72,7 +72,7 @@ type XivRow(sheet : XivSheet, data : string []) =
         [| for i = 0 to len - 1 do
             let key = sprintf "%s[%i]" prefix i
             yield (x.AsRowRef(key)) |]
-        |> Array.map (fun r -> sheet.Collection.GetSheet(r.Sheet).[r.Key])
+        |> Array.map (fun r -> sheet.Collection.GetSheet(r.Sheet).GetItem(r.Key))
 
 type XivSheet(name, col : XivCollection, hdr) =
     let rowCache = Dictionary<XivKey, XivRow>()
@@ -100,7 +100,7 @@ type XivSheet(name, col : XivCollection, hdr) =
 
     member x.Header : XivHeader = hdr
 
-    member x.Item (key : XivKey) =
+    member x.GetItem (key : XivKey) =
         x.EnsureCached()
 
         if rowCache.ContainsKey(key) then
@@ -109,11 +109,11 @@ type XivSheet(name, col : XivCollection, hdr) =
             raise
             <| KeyNotFoundException(sprintf "无法在%s中找到键:%A" name key)
 
-    member x.Item (mainIdx : int) =
-        x.Item({ XivKey.Main = mainIdx; Alt = 0 })
+    member x.GetItem (mainIdx : int) =
+        x.GetItem({ XivKey.Main = mainIdx; Alt = 0 })
 
-    member x.Item (mainIdx : int, altIdx : int) =
-        x.Item({ XivKey.Main = mainIdx; Alt = altIdx })
+    //member x.GetItem (mainIdx : int, altIdx : int) =
+    //    x.GetItem({ XivKey.Main = mainIdx; Alt = altIdx })
 
     member x.ContainsKey (key) =
         x.EnsureCached()

@@ -7,13 +7,6 @@ type TypedHeaderItem =
     | Array1D of BaseName : string * Template : string * TypeName : string * Range : CellRange
     | Array2D of BaseName : string * Template : string * TypeName : string * Range : (CellRange * CellRange)
 
-    member x.TypeName =
-        match x with
-        | NoName(_, tn) -> tn
-        | Normal(_, tn) -> tn
-        | Array1D(_, _, tn, _) -> tn
-        | Array2D(_, _, tn, _) -> tn
-
     member x.GetCacheKey (shtName : string) =
         match x with
         // 不同表内同一个类型都是一样的

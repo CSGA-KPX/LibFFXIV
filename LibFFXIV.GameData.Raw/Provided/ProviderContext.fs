@@ -127,7 +127,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
 
         let rowsProp =
             ProvidedProperty(
-                propertyName = "Rows",
+                propertyName = "TypedRows",
                 propertyType = rowSeqType,
                 getterCode = (fun [ this ] -> <@@ (%%this : XivSheet) :> seq<XivRow> @@>)
             )
@@ -135,6 +135,22 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
         rowsProp.AddXmlDoc(sprintf "Get typed rows of %s" shtName)
 
         tySheetType.AddMember rowsProp
+
+        ProvidedMethod(
+            methodName = "GetItemTyped",
+            parameters = [ProvidedParameter("", typeof<XivKey>)],
+            returnType = rowType,
+            invokeCode = (fun [ this; key] -> <@@ (%%this : XivSheet).GetItem((%%key : XivKey)) @@>)
+        )
+        |> tySheetType.AddMember
+
+        ProvidedMethod(
+            methodName = "GetItemTyped",
+            parameters = [ProvidedParameter("", typeof<int>)],
+            returnType = rowType,
+            invokeCode = (fun [ this; key ] -> <@@ (%%this : XivSheet).GetItem((%%key : int)) @@>)
+        )
+        |> tySheetType.AddMember
 
         tySheetType
 
@@ -248,7 +264,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                                         let sht =
                                             cell.Row.Sheet.Collection.GetSheet(typeName)
 
-                                        sht.Item(key) @@>)
+                                        sht.GetItem(key) @@>)
                         ))
 
             cellType
@@ -278,7 +294,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                                         let sht =
                                             cell.Row.Sheet.Collection.GetSheet(typeName)
 
-                                        sht.Item(key) @@>)
+                                        sht.GetItem(key) @@>)
                         ))
 
             cellType
@@ -308,7 +324,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                                             cell.Row.Sheet.Collection.GetSheet(typeName)
 
                                         cell.AsInts()
-                                        |> Array.map (fun key -> sht.Item(key)) @@>)
+                                        |> Array.map (fun key -> sht.GetItem(key)) @@>)
                         ))
 
             cellType
@@ -338,7 +354,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                                             cell.Row.Sheet.Collection.GetSheet(typeName)
 
                                         cell.AsInts()
-                                        |> Array2D.map (fun key -> sht.Item(key)) @@>)
+                                        |> Array2D.map (fun key -> sht.GetItem(key)) @@>)
                         ))
 
             cellType

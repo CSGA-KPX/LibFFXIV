@@ -64,7 +64,17 @@ type XivHeaderCache() =
 
         baseName, formatTemplate, indexes.ToArray()
 
+    member private x.ClearHeaderTypeName (hdrs : XivHeaderItem []) = 
+        // this method modifies input array
+        for i = 0 to hdrs.Length - 1 do 
+            let hdr = hdrs.[i]
+            if hdr.TypeName.Contains("&") then
+                let idx = hdr.TypeName.IndexOf('&') - 1
+                hdrs.[i] <- {hdr with TypeName = hdr.TypeName.[0 .. idx]}
+
     member private x.ParseHeaders (hdrs : XivHeaderItem []) =
+        x.ClearHeaderTypeName(hdrs)
+
         let ret =
             ResizeArray<TypedHeaderItem>(hdrs.Length)
 
