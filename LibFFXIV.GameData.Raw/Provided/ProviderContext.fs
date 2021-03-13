@@ -13,6 +13,7 @@ open LibFFXIV.GameData
 open LibFFXIV.GameData.Raw
 
 
+[<Sealed>]
 type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>) =
     let mainNS = "LibFFXIV.GameData.Provided"
     let internalNS = "LibFFXIV.GameData.Provided"

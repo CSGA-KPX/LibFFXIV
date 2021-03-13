@@ -9,6 +9,7 @@ type XivHeaderItem =
       ColumnName : string
       TypeName : string }
 
+[<Sealed>]
 type XivHeader(items : XivHeaderItem []) =
     // #,Name,Name,Name,Name,Name
     let nameToId =

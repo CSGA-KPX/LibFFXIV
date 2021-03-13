@@ -8,6 +8,7 @@ open LibFFXIV.GameData.Raw
 [<Struct>]
 type CellRange = { From : int; To : int }
 
+[<Sealed>]
 type TypedArrayCell1D(row : XivRow, template : string, from0, to0) =
 
     member x.Row = row
@@ -48,6 +49,7 @@ type TypedArrayCell1D(row : XivRow, template : string, from0, to0) =
 
     member x.AsStrings () = x.GetItems<string>()
 
+[<Sealed>]
 type TypedArrayCell2D(row : XivRow, template : string, from0, to0, from1, to1) =
 
     member x.Row = row

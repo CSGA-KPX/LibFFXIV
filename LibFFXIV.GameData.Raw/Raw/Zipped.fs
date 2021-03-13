@@ -6,6 +6,7 @@ open System.IO.Compression
 open LibFFXIV.GameData.Raw
 
 
+[<Sealed>]
 type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
     inherit XivCollection(lang)
 

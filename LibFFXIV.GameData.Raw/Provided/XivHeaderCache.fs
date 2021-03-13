@@ -9,6 +9,7 @@ open LibFFXIV.GameData
 open LibFFXIV.GameData.Raw
 
 
+[<Sealed>]
 type XivHeaderCache() =
     static let hdrParseRegex =
         Regex(@"[\(\[]([0-9]+)[\)\]]", RegexOptions.Compiled)
@@ -23,6 +24,10 @@ type XivHeaderCache() =
         if cacheState <> curStats then
             hdrCache.Clear()
             cacheState <- curStats
+
+            if not <| File.Exists(archive) then
+                let fullPath = Path.GetFullPath(archive)
+                failwithf "the specified file %s does not exist." fullPath
 
             use file =
                 File.Open(archive, FileMode.Open, FileAccess.Read, FileShare.Read)

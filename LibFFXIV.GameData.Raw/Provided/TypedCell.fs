@@ -5,7 +5,7 @@ open System
 
 open LibFFXIV.GameData.Raw
 
-
+[<Sealed>]
 type TypedCell(row : XivRow, fieldIdx : int) =
 
     new(row : XivRow, fieldName : string) =

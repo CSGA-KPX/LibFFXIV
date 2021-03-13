@@ -16,8 +16,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="UnitTest1.fs" />
-    <Compile Include="TypeProvider.fs" />
+    <None Include="testData.zip">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <Compile Include="TestResource.fs" />
+    <Compile Include="RawTest.fs" />
+    <Compile Include="TypeProviderTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

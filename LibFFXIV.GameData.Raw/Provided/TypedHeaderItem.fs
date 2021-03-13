@@ -13,5 +13,5 @@ type TypedHeaderItem =
         | NoName(_, tn) -> sprintf "Cell_%s" tn
         | Normal(_, tn) -> sprintf "Cell_%s" tn
         // 但是不同表里面数组大小不一定一样
-        | Array1D(_, _, tn, _) -> sprintf "Cell_%s_%s" shtName tn
-        | Array2D(_, _, tn, _) -> sprintf "Cell_%s_%s" shtName tn
+        | Array1D(_, _, tn, _) -> sprintf "Cell1D_%s_%s" shtName tn
+        | Array2D(_, _, tn, _) -> sprintf "Cell2D_%s_%s" shtName tn

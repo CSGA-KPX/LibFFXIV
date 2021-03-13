@@ -11,6 +11,7 @@ open FSharp.Core.CompilerServices
 open LibFFXIV.GameData
 
 
+[<Sealed>]
 [<TypeProvider>]
 type XivCollectionProvider(cfg : TypeProviderConfig) as x =
     inherit TypeProviderForNamespaces(cfg)
