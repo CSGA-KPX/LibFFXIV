@@ -1,4 +1,4 @@
-﻿namespace LibFFXIV.GameData.Raw.AssemblyInfo
+﻿namespace LibFFXIV.GameData.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices
@@ -7,11 +7,11 @@ open System.Runtime.InteropServices
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[<assembly: AssemblyTitle("LibFFXIV.GameData.Raw")>]
+[<assembly: AssemblyTitle("LibFFXIV.GameData")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("")>]
-[<assembly: AssemblyProduct("LibFFXIV.GameData.Raw")>]
+[<assembly: AssemblyProduct("LibFFXIV.GameData")>]
 [<assembly: AssemblyCopyright("Copyright ©  2019")>]
 [<assembly: AssemblyTrademark("")>]
 [<assembly: AssemblyCulture("")>]

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>LibFFXIV.GameData.Raw_test</RootNamespace>
+    <RootNamespace>LibFFXIV.GameData-test</RootNamespace>
 
     <IsPackable>false</IsPackable>
     <GenerateProgramFile>false</GenerateProgramFile>
@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LibFFXIV.GameData.Raw\LibFFXIV.GameData.fsproj" />
+    <ProjectReference Include="..\LibFFXIV.GameData\LibFFXIV.GameData.fsproj" />
   </ItemGroup>
 
 </Project>
