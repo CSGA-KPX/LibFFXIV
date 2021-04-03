@@ -36,8 +36,7 @@ type XivHeaderCache() =
             use zip =
                 new ZipArchive(file, ZipArchiveMode.Read)
 
-            use col =
-                new ZippedXivCollection(lang, zip, prefix)
+            use col = new ZippedXivCollection(lang, zip, prefix)
 
             for name in col.GetAllSheetNames() do
                 if not <| name.Contains("/") then

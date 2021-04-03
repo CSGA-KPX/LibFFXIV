@@ -25,8 +25,8 @@ type ItemCollectionText() =
         new ZippedXivCollection(XivLanguage.None, a, archivePrefix)
 
     interface IDisposable with
-        member x.Dispose() = 
-            (col :> IDisposable).Dispose()
+        member x.Dispose () =
+            //(col :> IDisposable).Dispose()
             a.Dispose()
             file.Dispose()
 
@@ -48,13 +48,7 @@ type ItemCollectionText() =
 
     [<Test>]
     member x.SelectedSheet () =
-        let gil =
-            col.GetSheet(
-                "Item",
-                [| "Adjective"
-                   "IsCollectable"
-                   "IsGlamourous" |]
-            ).GetItem(1)
+        let gil = col.GetSheet("Item").GetItem(1)
 
         gil.As<string>("Adjective") |> should equal "0"
 
@@ -85,6 +79,7 @@ type ItemCollectionText() =
 
         gil.AsRow("ItemUICategory").Key.Main
         |> should equal 63
+
         gil.As<int16>("Rarity") |> should equal 1s
         gil.As<uint16>("Rarity") |> should equal 1us
         gil.As<int32>("Rarity") |> should equal 1
@@ -92,4 +87,5 @@ type ItemCollectionText() =
         gil.As<int64>("Rarity") |> should equal 1L
         gil.As<uint64>("Rarity") |> should equal 1UL
 
-        gil.AsRow("ItemUICategory").Key.Main |> should equal 63
+        gil.AsRow("ItemUICategory").Key.Main
+        |> should equal 63

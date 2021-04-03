@@ -29,4 +29,8 @@
     <ProjectReference Include="..\LibFFXIV.GameData\LibFFXIV.GameData.fsproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="5.0.1" />
+  </ItemGroup>
+
 </Project>

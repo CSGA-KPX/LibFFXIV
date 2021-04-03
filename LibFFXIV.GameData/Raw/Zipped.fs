@@ -28,13 +28,14 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
             prefix
             + String.Join(".", name, lang.ToString(), "csv")
 
-        if entriesCache.ContainsKey(woLang)
-        then woLang
-        elif entriesCache.ContainsKey(whLang)
-        then whLang
-        else failwithf "找不到表%s : %s/%s" name woLang whLang
+        if entriesCache.ContainsKey(woLang) then
+            woLang
+        elif entriesCache.ContainsKey(whLang) then
+            whLang
+        else
+            failwithf "找不到表%s : %s/%s" name woLang whLang
 
-    override x.GetSheetCore (name, fields, ids) =
+    override x.GetSheetUncached (name) =
         let csv =
             seq {
                 use fs = entriesCache.[getFileName name].Open()
@@ -46,7 +47,7 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
                     yield csv.Current |> Seq.toArray
             }
 
-        let mutable header =
+        let header =
             let s =
                 csv |> Seq.take headerLength |> Seq.toArray
 
@@ -60,35 +61,11 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
                 s.[2]
             |> XivHeader
 
-        let selected =
-            [| yield 0 // key column
-               yield! ids
-
-               for name in fields do
-                   yield header.GetIndex(name) |]
-            |> Array.distinct
-
-        if selected.Length > 1 then
-            header <-
-                XivHeader(
-                    selected
-                    |> Array.map (fun i -> header.Headers.[i])
-                )
-
         let sheet = XivSheet(name, x, header)
 
         csv
         |> Seq.skip 3
-        |> Seq.map
-            (fun fields ->
-                if selected.Length > 1 then
-                    let fields =
-                        [| for i in selected do
-                            yield fields.[i] |]
-
-                    XivRow(sheet, fields)
-                else
-                    XivRow(sheet, fields))
+        |> Seq.map (fun fields -> XivRow(sheet, fields))
         |> sheet.SetRowSource
 
         sheet
@@ -96,11 +73,15 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
     override x.GetAllSheetNames () =
         entriesCache.Keys
         |> Seq.filter (fun path -> path.EndsWith(".csv"))
-        |> Seq.map (fun path -> 
-            path.[0 .. path.IndexOf(".") - 1].Replace(prefix, ""))
+        |> Seq.map
+            (fun path ->
+                path.[0..path.IndexOf(".") - 1]
+                    .Replace(prefix, ""))
 
     override x.SheetExists (name) =
         try
             getFileName name |> ignore
             true
         with _ -> false
+
+    override x.Dispose () = base.Dispose()

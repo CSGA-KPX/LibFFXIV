@@ -44,17 +44,18 @@ type XivRow(sheet : XivSheet, data : string []) =
 
     member x.AsArray<'T when 'T :> IConvertible> (prefix, len) =
         [| for i = 0 to len - 1 do
-            let key = sprintf "%s[%i]" prefix i
-            yield (x.As<'T>(key)) |]
+               let key = sprintf "%s[%i]" prefix i
+               yield (x.As<'T>(key)) |]
 
     member internal x.AsRowRef (id : int, ?includeKey : bool) =
         let id = adjustId (id, includeKey)
         let str = data.[id]
         let t = sheet.Header.GetFieldType(id)
 
-        if sheet.Collection.SheetExists(t)
-        then { Sheet = t; Key = str |> int32 }
-        else failwithf "Sheet not found in collectio: %s" t
+        if sheet.Collection.SheetExists(t) then
+            { Sheet = t; Key = str |> int32 }
+        else
+            failwithf "Sheet not found in collectio: %s" t
 
     member internal x.AsRowRef (name : string) =
         x.AsRowRef(sheet.Header.GetIndex(name), true)
@@ -70,8 +71,8 @@ type XivRow(sheet : XivSheet, data : string []) =
 
     member x.AsRowArray (prefix, len) =
         [| for i = 0 to len - 1 do
-            let key = sprintf "%s[%i]" prefix i
-            yield (x.AsRowRef(key)) |]
+               let key = sprintf "%s[%i]" prefix i
+               yield (x.AsRowRef(key)) |]
         |> Array.map (fun r -> sheet.Collection.GetSheet(r.Sheet).GetItem(r.Key))
 
 type XivSheet(name, col : XivCollection, hdr) =
@@ -138,26 +139,37 @@ type XivSheet(name, col : XivCollection, hdr) =
 
 [<AbstractClass>]
 type XivCollection(lang) =
-    let cache = Dictionary<string, XivSheet>()
+    let weakCache =
+        Dictionary<string, WeakReference<XivSheet>>()
 
     member x.Language : XivLanguage = lang
-
-    member x.ClearCache () = cache.Clear()
 
     abstract GetAllSheetNames : unit -> seq<string>
 
     abstract SheetExists : string -> bool
 
-    abstract GetSheetCore : name:string * fields:string [] * ids:int [] -> XivSheet
+    abstract GetSheetUncached : name : string -> XivSheet
 
-    member x.GetSheet (name, ?fields : string [], ?ids : int []) : XivSheet =
-        let fields = defaultArg fields Array.empty
-        let ids = defaultArg ids Array.empty
+    member x.GetSheet (name) : XivSheet =
 
-        if not <| cache.ContainsKey(name)
-        then cache.[name] <- x.GetSheetCore(name, fields, ids)
+        if weakCache.ContainsKey(name) then
+            let succ, sht = weakCache.[name].TryGetTarget()
 
-        cache.[name]
+            if succ then
+                sht
+            else
+                let sht = x.GetSheetUncached(name)
+                weakCache.[name].SetTarget(sht)
+                sht
+        else
+            let sht = x.GetSheetUncached(name)
+            weakCache.[name] <- WeakReference<_>(sht)
+            sht
 
-    interface IDisposable with
-        member x.Dispose () = x.ClearCache()
+    /// 释放和本Collection相关的资源
+    abstract Dispose : unit -> unit
+
+    default x.Dispose() = weakCache.Clear()
+
+    interface IDisposable with 
+        member x.Dispose() = x.Dispose()

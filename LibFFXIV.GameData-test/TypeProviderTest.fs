@@ -28,7 +28,7 @@ type ProviderTest() =
 
     interface IDisposable with
         member x.Dispose() = 
-            (col :> IDisposable).Dispose()
+            //(col :> IDisposable).Dispose()
             a.Dispose()
             file.Dispose()
 
