@@ -14,6 +14,7 @@ type XivLanguage =
     | ChineseTraditional
     | Korean
 
+    /// Convert to lang postfix in csv
     override x.ToString () =
         match x with
         | None -> ""
@@ -25,8 +26,9 @@ type XivLanguage =
         | ChineseSimplified -> "chs"
         | ChineseTraditional -> "cht"
 
-    static member FromString(str : string) = 
-        match str.ToLowerInvariant() with
+    /// Parse lang postfix to XivLanguage
+    static member FromString(lang : string) = 
+        match lang.ToLowerInvariant() with
         | "" | "none" -> None
         | "ja" -> Japanese
         | "en" -> English
@@ -35,16 +37,23 @@ type XivLanguage =
         | "kr" -> Korean
         | "chs" -> ChineseSimplified
         | "cht" -> ChineseTraditional
-        | unk -> failwithf "未知语言名称%s" unk
+        | _ -> invalidArg (nameof lang) (sprintf "Unknown language name : %s" lang)
 
 
 [<Struct>]
+/// Primary key type for XivKey
 type XivKey =
-    { Main : int
+    { /// Key index for most sheets
+      Main : int
+      /// Alternative index for other sheets
+      /// 
+      /// As GilShopItem has 262144.0 ~ 262144.19
       Alt : int }
 
+    /// Create XivKey from Main index.
     static member FromKey (k) = { Main = k; Alt = 0 }
 
+    /// Parse XivKey from index string.
     static member FromString (str : string) =
         let v = str.Split('.')
         let k = v.[0] |> Int32.Parse
@@ -55,4 +64,7 @@ type XivKey =
         { Main = k; Alt = a }
 
 [<Struct>]
+/// Holds row reference to target sheet.
+///
+/// Delays sheet creation to avoid deadlocks.
 type XivSheetReference = { Key : int; Sheet : string }

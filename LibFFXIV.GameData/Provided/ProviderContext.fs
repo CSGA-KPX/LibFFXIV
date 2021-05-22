@@ -14,6 +14,9 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
+/// Holds infomation about provided types.
+/// 
+/// May support invalidate in fulture.
 type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>) =
     let mainNS = "LibFFXIV.GameData.Provided"
     let internalNS = "LibFFXIV.GameData.Provided"
@@ -90,8 +93,6 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                         new ZippedXivCollection(lang, archive, prefix) @@>
         )
         |> tpType.AddMember
-
-        // 创建衍生类型
 
         let deps = ResizeArray(hdrCache.Count)
 
@@ -174,12 +175,12 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 | TypedHeaderItem.NoName(colIdx, typeName) ->
                     let prop =
                         ProvidedProperty(
-                            propertyName = sprintf "UNK_%i" colIdx,
+                            propertyName = sprintf "UNK_%i" colIdx.RealIndex,
                             propertyType = x.GetCellType(shtName, hdr),
                             getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), colIdx) @@>)
                         )
 
-                    prop.AddXmlDoc(sprintf "字段 %s.[%i] : %s" shtName colIdx typeName)
+                    prop.AddXmlDoc(sprintf "字段 %s.[%i] : %s" shtName colIdx.RealIndex typeName)
 
                     prop
                 | TypedHeaderItem.Normal(colName, typeName) ->

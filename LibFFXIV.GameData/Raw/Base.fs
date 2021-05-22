@@ -6,21 +6,29 @@ open System.Collections.Generic
 open LibFFXIV.GameData
 
 
+/// <summary>
+/// Holds one row of the a sheet
+/// </summary>
+/// <param name="sheet">The parent XivSheet</param>
+/// <param name="data">Row data</param>
 type XivRow(sheet : XivSheet, data : string []) =
 
-    static let adjustId(id, includeKey : bool option) =
-        let includeKey = defaultArg includeKey false
-        if includeKey then id else id + 1
-
+    /// Get parent XivSheet
     member x.Sheet = sheet
 
+    /// Primary key of this row
     member val Key = XivKey.FromString(data.[0])
 
-    member x.RawData = data
+    member x.RawData = data :> IReadOnlyList<_>
 
-    member x.As<'T when 'T :> IConvertible> (id : int, ?includeKey : bool) =
-        let id = adjustId (id, includeKey)
-        let t = sheet.Header.GetFieldType(id)
+
+    /// <summary>
+    /// Get data of given index.
+    /// </summary>
+    /// <typeparam name="'T">Convert string value to</typeparam>
+    member x.As<'T when 'T :> IConvertible>(idx : XivHeaderIndex) =
+        let t = sheet.Header.GetFieldType(idx)
+        let id = idx.RealIndex
 
         if t = "int64" then
             let str = data.[id]
@@ -39,61 +47,88 @@ type XivRow(sheet : XivSheet, data : string []) =
         else
             Convert.ChangeType(data.[id], typeof<'T>) :?> 'T
 
-    member x.As<'T when 'T :> IConvertible> (name : string) =
-        x.As<'T>(sheet.Header.GetIndex(name), true)
+    /// <summary>
+    /// Get data of given column name.
+    /// </summary>
+    /// <typeparam name="'T">Convert string value to</typeparam>
+    member x.As<'T when 'T :> IConvertible>(name : string) = x.As<'T>(sheet.Header.GetIndex(name))
 
-    member x.AsArray<'T when 'T :> IConvertible> (prefix, len) =
+    /// <summary>
+    /// Get array data of given column, in 'prefix[0 .. len]'
+    /// </summary>
+    /// <typeparam name="'T">Convert string value to</typeparam>
+    member x.AsArray<'T when 'T :> IConvertible>(prefix, len) =
         [| for i = 0 to len - 1 do
                let key = sprintf "%s[%i]" prefix i
                yield (x.As<'T>(key)) |]
 
-    member internal x.AsRowRef (id : int, ?includeKey : bool) =
-        let id = adjustId (id, includeKey)
+    /// Convert index to reference object.
+    member internal x.AsRowRef(idx : XivHeaderIndex) =
+        let id = idx.RealIndex
         let str = data.[id]
-        let t = sheet.Header.GetFieldType(id)
+        let t = sheet.Header.GetFieldType(idx)
 
         if sheet.Collection.SheetExists(t) then
             { Sheet = t; Key = str |> int32 }
         else
             failwithf "Sheet not found in collectio: %s" t
 
-    member internal x.AsRowRef (name : string) =
-        x.AsRowRef(sheet.Header.GetIndex(name), true)
+    /// Convert column name to reference object.
+    member internal x.AsRowRef(name : string) = x.AsRowRef(sheet.Header.GetIndex(name))
 
-    member x.AsRow (id : int, ?includeKey : bool) =
-        let r =
-            x.AsRowRef(adjustId (id, includeKey), true)
+    /// Lookup row in target sheet
+    member x.AsRow(idx : XivHeaderIndex) =
+        let r = x.AsRowRef(idx)
 
         sheet.Collection.GetSheet(r.Sheet).GetItem(r.Key)
 
-    member x.AsRow (str : string) =
-        x.AsRow(sheet.Header.GetIndex(str), true)
+    /// Lookup row in target sheet
+    member x.AsRow(str : string) = x.AsRow(sheet.Header.GetIndex(str))
 
-    member x.AsRowArray (prefix, len) =
+    /// Lookup rows in target sheet, in 'prefix[0 .. len]'
+    member x.AsRowArray(prefix, len) =
         [| for i = 0 to len - 1 do
                let key = sprintf "%s[%i]" prefix i
                yield (x.AsRowRef(key)) |]
         |> Array.map (fun r -> sheet.Collection.GetSheet(r.Sheet).GetItem(r.Key))
 
+/// <summary>
+/// Basic Sheet Implemention.
+/// </summary>
+/// <param name="name">Sheet name</param>
+/// <param name="col">Parent XivCollection</param>
+/// <param name="hdr">XivHeader of the sheet</param>
 type XivSheet(name, col : XivCollection, hdr) =
     let rowCache = Dictionary<XivKey, XivRow>()
     let mutable cacheInitialized = false
+    let mutable rowSourceSet = false
     let mutable rowSeq : seq<XivRow> = Seq.empty
 
     let metaInfo = Dictionary<string, obj>()
 
-    // 储存临时数据
+    /// Stores runtime infomation.
+    /// 
+    /// E.g. cache generated array-column names.
     member internal x.MetaInfo = metaInfo :> IDictionary<_, _>
 
-    member x.EnsureCached () =
+    /// Cache sheet rows to support random access.
+    member x.EnsureCached() =
         if not cacheInitialized then
+            if not rowSourceSet then
+                invalidOp "Call SetRowSource first."
+
             for row in rowSeq do
                 rowCache.Add(row.Key, row)
 
             cacheInitialized <- true
             rowSeq <- Seq.empty
 
-    member internal x.SetRowSource (seq) = rowSeq <- seq
+    /// Set row data source.
+    ///
+    /// XivRow requires XivSheet, So row source needs to be set later.
+    member internal x.SetRowSource(seq) = 
+        rowSourceSet <- true
+        rowSeq <- seq
 
     member x.Name : string = name
 
@@ -101,44 +136,53 @@ type XivSheet(name, col : XivCollection, hdr) =
 
     member x.Header : XivHeader = hdr
 
-    member x.GetItem (key : XivKey) =
+    // Do not change to Item, conflit with Typed sheet.
+    /// Lookup a item. Call to this method will cache the sheet.
+    member x.GetItem(key : XivKey) =
         x.EnsureCached()
 
         if rowCache.ContainsKey(key) then
             rowCache.[key]
         else
             raise
-            <| KeyNotFoundException(sprintf "无法在%s中找到键:%A" name key)
+            <| KeyNotFoundException(sprintf "Cannot found key %A in sheet %s" key name)
 
-    member x.GetItem (mainIdx : int) =
+    // Do not change to Item, conflit with Typed sheet.
+    /// Lookup a item. Call to this method will cache the sheet.
+    member x.GetItem(mainIdx : int) =
         x.GetItem({ XivKey.Main = mainIdx; Alt = 0 })
 
-    //member x.GetItem (mainIdx : int, altIdx : int) =
-    //    x.GetItem({ XivKey.Main = mainIdx; Alt = altIdx })
-
-    member x.ContainsKey (key) =
+    /// Check is key exists. Call to this method will cache the sheet.
+    member x.ContainsKey(key) =
         x.EnsureCached()
         rowCache.ContainsKey(key)
 
     interface IEnumerable<XivRow> with
-        member x.GetEnumerator () =
+        member x.GetEnumerator() =
             if cacheInitialized then
                 (rowCache.Values |> Seq.map (fun x -> x))
                     .GetEnumerator()
             else
+                if not rowSourceSet then
+                    invalidOp "Call SetRowSource first."
+
                 rowSeq.GetEnumerator()
 
     interface Collections.IEnumerable with
-        member x.GetEnumerator () =
+        member x.GetEnumerator() =
             if cacheInitialized then
                 (rowCache.Values |> Seq.map (fun x -> x))
                     .GetEnumerator()
                 :> Collections.IEnumerator
             else
+                if not rowSourceSet then
+                    invalidOp "Call SetRowSource first."
+
                 rowSeq.GetEnumerator() :> Collections.IEnumerator
 
 [<AbstractClass>]
 type XivCollection(lang) =
+    // use weak reference to allow cached sheet to be GCed.
     let weakCache =
         Dictionary<string, WeakReference<XivSheet>>()
 
@@ -148,9 +192,11 @@ type XivCollection(lang) =
 
     abstract SheetExists : string -> bool
 
+    /// Create sheet.
     abstract GetSheetUncached : name : string -> XivSheet
 
-    member x.GetSheet (name) : XivSheet =
+    /// Create or get cached sheet.
+    member x.GetSheet(name) : XivSheet =
 
         if weakCache.ContainsKey(name) then
             let succ, sht = weakCache.[name].TryGetTarget()
@@ -166,10 +212,12 @@ type XivCollection(lang) =
             weakCache.[name] <- WeakReference<_>(sht)
             sht
 
-    /// 释放和本Collection相关的资源
+    /// Release associated resource.
+    
+    /// Call base.Dispose() to dispose weak cache.
     abstract Dispose : unit -> unit
 
     default x.Dispose() = weakCache.Clear()
 
-    interface IDisposable with 
+    interface IDisposable with
         member x.Dispose() = x.Dispose()

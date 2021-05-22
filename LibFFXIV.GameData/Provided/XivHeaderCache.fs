@@ -10,6 +10,7 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
+/// Cache sheet headers to speed intellisense lookup.
 type XivHeaderCache() =
     static let hdrParseRegex =
         Regex(@"[\(\[]([0-9]+)[\)\]]", RegexOptions.Compiled)
@@ -18,7 +19,7 @@ type XivHeaderCache() =
     let hdrCache = Dictionary<string, TypedHeaderItem []>()
 
     /// returns true if rebuilded, otherwise false.
-    member x.TryBuild (lang : XivLanguage, archive : string, prefix : string) =
+    member x.TryBuild(lang : XivLanguage, archive : string, prefix : string) =
         let curStats = sprintf "%O%s%s" lang archive prefix
 
         if cacheState <> curStats then
@@ -32,16 +33,17 @@ type XivHeaderCache() =
             use file =
                 File.Open(archive, FileMode.Open, FileAccess.Read, FileShare.Read)
 
-            // 缓存所有表格数据
+            // Cache all table header
             use zip =
                 new ZipArchive(file, ZipArchiveMode.Read)
 
-            use col = new ZippedXivCollection(lang, zip, prefix)
+            use col =
+                new ZippedXivCollection(lang, zip, prefix)
 
             for name in col.GetAllSheetNames() do
                 if not <| name.Contains("/") then
                     let hdr = col.GetSheet(name).Header.Headers
-                    let typed = x.ParseHeaders(hdr)
+                    let typed = x.ParseHeaders(hdr |> Seq.toArray)
                     hdrCache.[name] <- typed
 
             true
@@ -50,7 +52,7 @@ type XivHeaderCache() =
 
     member x.Headers = hdrCache :> IReadOnlyDictionary<_, _>
 
-    member private x.ParseArrayIndex (name : string) =
+    member private x.ParseArrayIndex(name : string) =
         let mutable matchCount = -1
         let indexes = ResizeArray<int>()
 
@@ -68,15 +70,19 @@ type XivHeaderCache() =
 
         baseName, formatTemplate, indexes.ToArray()
 
-    member private x.ClearHeaderTypeName (hdrs : XivHeaderItem []) = 
+    member private x.ClearHeaderTypeName(hdrs : XivHeaderItem []) =
         // this method modifies input array
-        for i = 0 to hdrs.Length - 1 do 
+        for i = 0 to hdrs.Length - 1 do
             let hdr = hdrs.[i]
+
             if hdr.TypeName.Contains("&") then
                 let idx = hdr.TypeName.IndexOf('&') - 1
-                hdrs.[i] <- {hdr with TypeName = hdr.TypeName.[0 .. idx]}
 
-    member private x.ParseHeaders (hdrs : XivHeaderItem []) =
+                hdrs.[i] <-
+                    { hdr with
+                          TypeName = hdr.TypeName.[0..idx] }
+
+    member private x.ParseHeaders(hdrs : XivHeaderItem []) =
         x.ClearHeaderTypeName(hdrs)
 
         let ret =
@@ -88,8 +94,12 @@ type XivHeaderCache() =
             match hdr.ColumnName with
             | "#" -> ()
             | "" ->
-                NoName(hdr.OrignalKeyName |> int, hdr.TypeName)
-                |> ret.Add
+                let idx =
+                    hdr.OrignalKeyName
+                    |> int
+                    |> XivHeaderIndex.RawIndex
+
+                NoName(idx, hdr.TypeName) |> ret.Add
             | name ->
                 let baseName, tmpl, indexes = x.ParseArrayIndex(name)
 
@@ -124,7 +134,7 @@ type XivHeaderCache() =
             match ranges with
             | [| r |] -> Array1D(kv.Value.BaseName, kv.Key, kv.Value.TypeName, r)
             | [| r1; r2 |] -> Array2D(kv.Value.BaseName, kv.Key, kv.Value.TypeName, (r1, r2))
-            | _ -> failwithf "%s列维度不正确，应当为1/2维数组" kv.Value.BaseName
+            | _ -> failwithf "Wrong array dimension of %s, expected 1D/2D " kv.Value.BaseName
             |> ret.Add
 
         ret.ToArray()

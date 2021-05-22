@@ -7,6 +7,10 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
+/// Implemention of access to zipped csv's.
+/// <param name="lang">Language postfix of csv filenames. use None of not present.</param>
+/// <param name="zip">ZipArchive to container.</param>
+/// <param name="pathPrefix">path prefix to actual csv file.</param>
 type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
     inherit XivCollection(lang)
 
@@ -34,7 +38,7 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
             whLang
         else
             failwithf "找不到表%s : %s/%s" name woLang whLang
-
+    
     override x.GetSheetUncached (name) =
         let csv =
             seq {
