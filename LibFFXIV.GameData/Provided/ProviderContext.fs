@@ -173,14 +173,15 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
             let prop =
                 match hdr with
                 | TypedHeaderItem.NoName(colIdx, typeName) ->
+                    let idx = colIdx.ToHdrIndex
                     let prop =
                         ProvidedProperty(
-                            propertyName = sprintf "UNK_%i" colIdx.RealIndex,
+                            propertyName = sprintf "RAW_%i" colIdx.ToRawIndex,
                             propertyType = x.GetCellType(shtName, hdr),
-                            getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), colIdx) @@>)
+                            getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), idx) @@>)
                         )
 
-                    prop.AddXmlDoc(sprintf "字段 %s.[%i] : %s" shtName colIdx.RealIndex typeName)
+                    prop.AddXmlDoc(sprintf "字段 %s.[%i] : %s" shtName colIdx.ToHdrIndex typeName)
 
                     prop
                 | TypedHeaderItem.Normal(colName, typeName) ->

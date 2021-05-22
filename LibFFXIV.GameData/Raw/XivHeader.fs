@@ -29,9 +29,17 @@ type XivHeaderIndex =
     | HeaderIndex of hdr : int
 
     /// <summary>
+    /// Convert XivHeaderIndex to raw index.
+    /// </summary>
+    member x.ToRawIndex =
+        match x with
+        | RawIndex idx -> idx
+        | HeaderIndex idx -> idx - 1
+
+    /// <summary>
     /// Convert XivHeaderIndex to int index.
     /// </summary>
-    member x.RealIndex =
+    member x.ToHdrIndex =
         match x with
         | RawIndex idx -> idx + 1
         | HeaderIndex idx -> idx
@@ -80,10 +88,10 @@ type XivHeader(items : XivHeaderItem []) =
     /// </summary>
     /// <param name="idx">Header index</param>
     member x.GetFieldType(idx : XivHeaderIndex) =
-        let t = idToType.[idx.RealIndex]
+        let t = idToType.[idx.ToHdrIndex]
 
         if t.ToLowerInvariant() = "row" then
-            items.[idx.RealIndex].ColumnName
+            items.[idx.ToHdrIndex].ColumnName
         else
             t
 
@@ -91,7 +99,7 @@ type XivHeader(items : XivHeaderItem []) =
     /// Get type name of given column name.
     /// </summary>
     /// <param name="col"></param>
-    member x.GetFieldType(col) = idToType.[x.GetIndex(col).RealIndex]
+    member x.GetFieldType(col) = idToType.[x.GetIndex(col).ToHdrIndex]
 
     /// <summary>
     /// Get header items.

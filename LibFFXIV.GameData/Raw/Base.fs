@@ -28,7 +28,7 @@ type XivRow(sheet : XivSheet, data : string []) =
     /// <typeparam name="'T">Convert string value to</typeparam>
     member x.As<'T when 'T :> IConvertible>(idx : XivHeaderIndex) =
         let t = sheet.Header.GetFieldType(idx)
-        let id = idx.RealIndex
+        let id = idx.ToHdrIndex
 
         if t = "int64" then
             let str = data.[id]
@@ -64,7 +64,7 @@ type XivRow(sheet : XivSheet, data : string []) =
 
     /// Convert index to reference object.
     member internal x.AsRowRef(idx : XivHeaderIndex) =
-        let id = idx.RealIndex
+        let id = idx.ToHdrIndex
         let str = data.[id]
         let t = sheet.Header.GetFieldType(idx)
 
