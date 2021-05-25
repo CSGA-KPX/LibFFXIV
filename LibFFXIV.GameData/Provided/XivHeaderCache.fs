@@ -18,9 +18,9 @@ type XivHeaderCache() =
     let mutable cacheState = ""
     let hdrCache = Dictionary<string, TypedHeaderItem []>()
 
-    /// returns true if rebuilded, otherwise false.
+    /// returns true if rebuilt, otherwise false.
     member x.TryBuild(lang : XivLanguage, archive : string, prefix : string) =
-        let curStats = sprintf "%O%s%s" lang archive prefix
+        let curStats = $"{lang}%s{archive}%s{prefix}"
 
         if cacheState <> curStats then
             hdrCache.Clear()
@@ -28,7 +28,7 @@ type XivHeaderCache() =
 
             if not <| File.Exists(archive) then
                 let fullPath = Path.GetFullPath(archive)
-                failwithf "the specified file %s does not exist." fullPath
+                failwithf $"the specified file %s{fullPath} does not exist."
 
             use file =
                 File.Open(archive, FileMode.Open, FileAccess.Read, FileShare.Read)
@@ -65,7 +65,7 @@ type XivHeaderCache() =
                     (fun m ->
                         matchCount <- matchCount + 1
                         indexes.Add(m.Groups.[1].Value |> int)
-                        sprintf "[{%i}]" matchCount)
+                        $"[{{%i{matchCount}}}]")
             )
 
         baseName, formatTemplate, indexes.ToArray()
@@ -134,7 +134,7 @@ type XivHeaderCache() =
             match ranges with
             | [| r |] -> Array1D(kv.Value.BaseName, kv.Key, kv.Value.TypeName, r)
             | [| r1; r2 |] -> Array2D(kv.Value.BaseName, kv.Key, kv.Value.TypeName, (r1, r2))
-            | _ -> failwithf "Wrong array dimension of %s, expected 1D/2D " kv.Value.BaseName
+            | _ -> failwithf $"Wrong array dimension of %s{kv.Value.BaseName}, expected 1D/2D "
             |> ret.Add
 
         ret.ToArray()

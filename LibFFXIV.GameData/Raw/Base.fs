@@ -35,7 +35,7 @@ type XivRow(sheet : XivSheet, data : string []) =
 
             let chunk =
                 str.Split([| ','; ' ' |], StringSplitOptions.RemoveEmptyEntries)
-                |> Array.map (int64)
+                |> Array.map int64
 
             let i64 =
                 chunk.[0]
@@ -59,7 +59,7 @@ type XivRow(sheet : XivSheet, data : string []) =
     /// <typeparam name="'T">Convert string value to</typeparam>
     member x.AsArray<'T when 'T :> IConvertible>(prefix, len) =
         [| for i = 0 to len - 1 do
-               let key = sprintf "%s[%i]" prefix i
+               let key = $"%s{prefix}[%i{i}]"
                yield (x.As<'T>(key)) |]
 
     /// Convert index to reference object.
@@ -71,7 +71,7 @@ type XivRow(sheet : XivSheet, data : string []) =
         if sheet.Collection.SheetExists(t) then
             { Sheet = t; Key = str |> int32 }
         else
-            failwithf "Sheet not found in collectio: %s" t
+            failwithf $"Sheet not found in collection: %s{t}"
 
     /// Convert column name to reference object.
     member internal x.AsRowRef(name : string) = x.AsRowRef(sheet.Header.GetIndex(name))
@@ -88,12 +88,12 @@ type XivRow(sheet : XivSheet, data : string []) =
     /// Lookup rows in target sheet, in 'prefix[0 .. len]'
     member x.AsRowArray(prefix, len) =
         [| for i = 0 to len - 1 do
-               let key = sprintf "%s[%i]" prefix i
+               let key = $"%s{prefix}[%i{i}]"
                yield (x.AsRowRef(key)) |]
         |> Array.map (fun r -> sheet.Collection.GetSheet(r.Sheet).GetItem(r.Key))
 
 /// <summary>
-/// Basic Sheet Implemention.
+/// Basic Sheet Implementation.
 /// </summary>
 /// <param name="name">Sheet name</param>
 /// <param name="col">Parent XivCollection</param>
@@ -106,7 +106,7 @@ type XivSheet(name, col : XivCollection, hdr) =
 
     let metaInfo = Dictionary<string, obj>()
 
-    /// Stores runtime infomation.
+    /// Stores runtime information.
     /// 
     /// E.g. cache generated array-column names.
     member internal x.MetaInfo = metaInfo :> IDictionary<_, _>
@@ -136,7 +136,7 @@ type XivSheet(name, col : XivCollection, hdr) =
 
     member x.Header : XivHeader = hdr
 
-    // Do not change to Item, conflit with Typed sheet.
+    // Do not change to Item, conflicts with Typed sheet.
     /// Lookup a item. Call to this method will cache the sheet.
     member x.GetItem(key : XivKey) =
         x.EnsureCached()
@@ -145,9 +145,9 @@ type XivSheet(name, col : XivCollection, hdr) =
             rowCache.[key]
         else
             raise
-            <| KeyNotFoundException(sprintf "Cannot found key %A in sheet %s" key name)
+            <| KeyNotFoundException $"Cannot found key %A{key} in sheet %s{name}"
 
-    // Do not change to Item, conflit with Typed sheet.
+    // Do not change to Item, conflicts with Typed sheet.
     /// Lookup a item. Call to this method will cache the sheet.
     member x.GetItem(mainIdx : int) =
         x.GetItem({ XivKey.Main = mainIdx; Alt = 0 })

@@ -7,7 +7,7 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
-/// Implemention of access to zipped csv's.
+/// Implementation of access to zipped csv's.
 /// <param name="lang">Language postfix of csv filenames. use None of not present.</param>
 /// <param name="zip">ZipArchive to container.</param>
 /// <param name="pathPrefix">path prefix to actual csv file.</param>
@@ -25,7 +25,7 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
 
     let prefix = defaultArg pathPrefix ""
 
-    let getFileName(name) =
+    let getFileName name =
         let woLang = prefix + String.Join(".", name, "csv")
 
         let whLang =
@@ -37,9 +37,9 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
         elif entriesCache.ContainsKey(whLang) then
             whLang
         else
-            failwithf "找不到表%s : %s/%s" name woLang whLang
+            failwithf $"找不到表%s{name} : %s{woLang}/%s{whLang}"
     
-    override x.GetSheetUncached (name) =
+    override x.GetSheetUncached name =
         let csv =
             seq {
                 use fs = entriesCache.[getFileName name].Open()
@@ -82,7 +82,7 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
                 path.[0..path.IndexOf(".") - 1]
                     .Replace(prefix, ""))
 
-    override x.SheetExists (name) =
+    override x.SheetExists name =
         try
             getFileName name |> ignore
             true

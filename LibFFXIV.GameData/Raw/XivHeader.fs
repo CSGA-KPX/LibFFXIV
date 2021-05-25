@@ -78,8 +78,8 @@ type XivHeader(items : XivHeaderItem []) =
     member internal x.GetIndex(col) =
         try
             HeaderIndex(nameToId.[col])
-        with :? KeyNotFoundException as e ->
-            printfn "Unknown column name : %s" col
+        with :? KeyNotFoundException ->
+            printfn $"Unknown column name : %s{col}"
             printfn "Known names are：%s" (String.Join(" ", nameToId.Keys))
             reraise ()
 

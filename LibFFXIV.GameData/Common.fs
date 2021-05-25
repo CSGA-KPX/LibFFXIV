@@ -37,7 +37,7 @@ type XivLanguage =
         | "kr" -> Korean
         | "chs" -> ChineseSimplified
         | "cht" -> ChineseTraditional
-        | _ -> invalidArg (nameof lang) (sprintf "Unknown language name : %s" lang)
+        | _ -> invalidArg (nameof lang) $"Unknown language name : %s{lang}"
 
 
 [<Struct>]
@@ -51,7 +51,7 @@ type XivKey =
       Alt : int }
 
     /// Create XivKey from Main index.
-    static member FromKey (k) = { Main = k; Alt = 0 }
+    static member FromKey k = { Main = k; Alt = 0 }
 
     /// Parse XivKey from index string.
     static member FromString (str : string) =

@@ -27,9 +27,9 @@ type TypedArrayCell1D(row : XivRow, template : string, from0, to0) =
 
         row.Sheet.MetaInfo.[template] :?> string []
 
-    member private x.GetItems<'T when 'T :> System.IConvertible> () =
+    member private x.GetItems<'T when 'T :> IConvertible> () =
         x.GetFields()
-        |> Array.map (fun name -> row.As<'T>(name))
+        |> Array.map row.As<'T>
 
     member x.AsInts () = x.GetItems<int>()
     member x.AsUInts () = x.GetItems<uint>()
@@ -72,9 +72,9 @@ type TypedArrayCell2D(row : XivRow, template : string, from0, to0, from1, to1) =
 
         row.Sheet.MetaInfo.[template] :?> string [,]
 
-    member private x.GetItems<'T when 'T :> System.IConvertible> () =
+    member private x.GetItems<'T when 'T :> IConvertible> () =
         x.GetFields()
-        |> Array2D.map (fun name -> row.As<'T>(name))
+        |> Array2D.map row.As<'T>
 
     member x.AsInts () = x.GetItems<int>()
     member x.AsUInts () = x.GetItems<uint>()

@@ -14,9 +14,9 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
-/// Holds infomation about provided types.
+/// Holds information about provided types.
 /// 
-/// May support invalidate in fulture.
+/// May support invalidate in future.
 type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>) =
     let mainNS = "LibFFXIV.GameData.Provided"
     let internalNS = "LibFFXIV.GameData.Provided"
@@ -30,8 +30,6 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
     let mutable internalList = List.empty<_> 
 
     member x.ProvideFor (tp : TypeProviderForNamespaces, providerName) =
-        let mutable registedTypes = HashSet<ProvidedTypeDefinition>()
-
         let tpType =
             if not <| mainCache.ContainsKey("MAIN") then
                 mainCache.["MAIN"] <- x.CreateCollectionType(providerName)
@@ -47,13 +45,13 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
         tpType
 
     member x.GetSheetType (shtName : string) =
-        let key = sprintf "Sheet_%s" shtName
+        let key = $"Sheet_%s{shtName}"
         if not <| internalCache.ContainsKey(key) then
             internalCache.[key] <- x.CreateSheetType(shtName)
         internalCache.[key]
 
     member x.GetRowType (shtName : string) =
-        let key = sprintf "Row_%s" shtName
+        let key = $"Row_%s{shtName}"
         if not <| internalCache.ContainsKey(key) then
             internalCache.[key] <- x.CreateRowType(shtName)
         internalCache.[key]
@@ -116,7 +114,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
             ProvidedTypeDefinition(
                 asm,
                 internalNS,
-                sprintf "Sheet_%s" shtName,
+                $"Sheet_%s{shtName}",
                 Some typeof<XivSheet>,
                 hideObjectMethods = true,
                 nonNullable = true
@@ -125,7 +123,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
         let rowType = x.GetRowType(shtName)
 
         let rowSeqType =
-            typedefof<seq<_>>.MakeGenericType (rowType)
+            typedefof<seq<_>>.MakeGenericType rowType
 
         let rowsProp =
             ProvidedProperty(
@@ -134,7 +132,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 getterCode = (fun [ this ] -> <@@ (%%this : XivSheet) :> seq<XivRow> @@>)
             )
 
-        rowsProp.AddXmlDoc(sprintf "Get typed rows of %s" shtName)
+        rowsProp.AddXmlDoc $"Get typed rows of %s{shtName}"
 
         tySheetType.AddMember rowsProp
 
@@ -142,7 +140,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
             methodName = "GetItemTyped",
             parameters = [ProvidedParameter("", typeof<XivKey>)],
             returnType = rowType,
-            invokeCode = (fun [ this; key] -> <@@ (%%this : XivSheet).GetItem((%%key : XivKey)) @@>)
+            invokeCode = (fun [ this; key] -> <@@ (%%this : XivSheet).GetItem(%%key : XivKey) @@>)
         )
         |> tySheetType.AddMember
 
@@ -150,7 +148,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
             methodName = "GetItemTyped",
             parameters = [ProvidedParameter("", typeof<int>)],
             returnType = rowType,
-            invokeCode = (fun [ this; key ] -> <@@ (%%this : XivSheet).GetItem((%%key : int)) @@>)
+            invokeCode = (fun [ this; key ] -> <@@ (%%this : XivSheet).GetItem(%%key : int) @@>)
         )
         |> tySheetType.AddMember
 
@@ -161,7 +159,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
             ProvidedTypeDefinition(
                 asm,
                 internalNS,
-                sprintf "Row_%s" shtName,
+                $"Row_%s{shtName}",
                 Some typeof<XivRow>,
                 hideObjectMethods = true,
                 nonNullable = true
@@ -176,12 +174,12 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                     let idx = colIdx.ToHdrIndex
                     let prop =
                         ProvidedProperty(
-                            propertyName = sprintf "RAW_%i" colIdx.ToRawIndex,
+                            propertyName = $"RAW_%i{colIdx.ToRawIndex}",
                             propertyType = x.GetCellType(shtName, hdr),
                             getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), idx) @@>)
                         )
 
-                    prop.AddXmlDoc(sprintf "字段 %s.[%i] : %s" shtName colIdx.ToHdrIndex typeName)
+                    prop.AddXmlDoc $"字段 %s{shtName}.[%i{colIdx.ToHdrIndex}] : %s{typeName}"
 
                     prop
                 | TypedHeaderItem.Normal(colName, typeName) ->
@@ -192,7 +190,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                             getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), colName) @@>)
                         )
 
-                    prop.AddXmlDoc(sprintf "字段 %s->%s : %s" shtName colName typeName)
+                    prop.AddXmlDoc $"字段 %s{shtName}->%s{colName} : %s{typeName}"
 
                     prop
                 | TypedHeaderItem.Array1D(name, tmpl, typeName, r0) ->
