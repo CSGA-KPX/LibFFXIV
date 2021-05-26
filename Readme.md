@@ -1,8 +1,6 @@
 # LibFFXIV
 私人FF14数据访问库。
 
-Personal library for accessing FFXIV data.
-
 ## LibFFXIV.Network
 已放弃，不再更新。
 
@@ -10,8 +8,6 @@ Deprecated.
 
 ## LibFFXIV.GameData.Raw
 提供对SaintCoinach导出的压缩文件的无类型（手动）访问。
-
-Provides untyped access to SaintCoinach-exported zip data.
 
 ```fsharp
 open System
@@ -39,7 +35,9 @@ for row in col.GetSheet("IKDRouteTable") do
 ## LibFFXIV.GameData.Provided
 通过类型提供器（Type Provider）对LibFFXIV.GameData.Raw进行简单包装。
 
-A type provider to generate methods and props for LibFFXIV.GameData.Raw.
+备注：
+1. Type Provider是F#语言特性，此部分内容在其他.NET语言中不生效。
+2. 定义文件改变不一定触发重新编译，相关旧代码不会报错，建议每次更新后进行Rebuild检查能否编译。
 
 ```fsharp
 open System
