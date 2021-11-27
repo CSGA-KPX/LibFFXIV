@@ -3,7 +3,7 @@
   <PropertyGroup>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	<GenerateDocumentationFile>true</GenerateDocumentationFile>
-	<TargetFramework>net5.0</TargetFramework>
+	<TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
