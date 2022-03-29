@@ -1,7 +1,8 @@
-﻿namespace LibFFXIV.GameData.Provider
+namespace LibFFXIV.GameData.Provider
 
 #nowarn "25"
 
+open System.IO
 open System.IO.Compression
 open System.Collections.Generic
 open System.Text
@@ -14,10 +15,7 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
-/// Holds information about provided types.
-/// 
-/// May support invalidate in future.
-type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>) =
+type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) =
     let mainNS = "LibFFXIV.GameData.Provided"
     let internalNS = "LibFFXIV.GameData.Provided"
 
@@ -27,12 +25,13 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
 
     let internalCache = Dictionary<string, ProvidedTypeDefinition>()
 
-    let mutable internalList = List.empty<_> 
+    let mutable internalList = List.empty<_>
 
-    member x.ProvideFor (tp : TypeProviderForNamespaces, providerName) =
+    member x.ProvideFor(tp: TypeProviderForNamespaces, providerName) =
         let tpType =
             if not <| mainCache.ContainsKey("MAIN") then
                 mainCache.["MAIN"] <- x.CreateCollectionType(providerName)
+
             mainCache.["MAIN"]
 
         tp.AddNamespace(mainNS, [ tpType ])
@@ -44,25 +43,31 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
 
         tpType
 
-    member x.GetSheetType (shtName : string) =
+    member x.GetSheetType(shtName: string) =
         let key = $"Sheet_%s{shtName}"
+
         if not <| internalCache.ContainsKey(key) then
             internalCache.[key] <- x.CreateSheetType(shtName)
+
         internalCache.[key]
 
-    member x.GetRowType (shtName : string) =
+    member x.GetRowType(shtName: string) =
         let key = $"Row_%s{shtName}"
+
         if not <| internalCache.ContainsKey(key) then
             internalCache.[key] <- x.CreateRowType(shtName)
+
         internalCache.[key]
 
-    member x.GetCellType (shtName : string, hdr : TypedHeaderItem) =
+    member x.GetCellType(shtName: string, hdr: TypedHeaderItem) =
         let key = hdr.GetCacheKey(shtName)
+
         if not <| internalCache.ContainsKey(key) then
             internalCache.[key] <- x.CreateCellType(shtName, hdr)
+
         internalCache.[key]
 
-    member private x.CreateCollectionType (typeName : string) =
+    member private x.CreateCollectionType(typeName: string) =
         let tpType =
             ProvidedTypeDefinition(
                 asm,
@@ -75,19 +80,34 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
 
         ProvidedConstructor(
             [ ProvidedParameter("col", typeof<XivCollection>) ],
-            invokeCode = fun [ col ] -> <@@ (%%col : XivCollection) @@>
+            invokeCode = fun [ col ] -> <@@ (%%col: XivCollection) @@>
         )
         |> tpType.AddMember
 
         ProvidedConstructor(
             [ ProvidedParameter("lang", typeof<XivLanguage>)
-              ProvidedParameter("archive", typeof<ZipArchive>)
+              ProvidedParameter("zipPath", typeof<string>)
               ProvidedParameter("prefix", typeof<string>) ],
             invokeCode =
-                fun [ lang; archive; prefix ] ->
-                    <@@ let lang = (%%lang : XivLanguage)
-                        let archive = (%%archive : ZipArchive)
-                        let prefix = (%%prefix : string)
+                fun [ lang; zipPath; prefix ] ->
+                    <@@ let lang = (%%lang: XivLanguage)
+                        let zipPath = (%%zipPath: string)
+                        let file = File.Open(zipPath, FileMode.Open, FileAccess.Read, FileShare.Read)
+                        let archive = new ZipArchive(file, ZipArchiveMode.Read)
+                        let prefix = (%%prefix: string)
+                        new ZippedXivCollection(lang, archive, prefix) @@>
+        )
+        |> tpType.AddMember
+
+        ProvidedConstructor(
+            [ ProvidedParameter("lang", typeof<XivLanguage>)
+              ProvidedParameter("stream", typeof<Stream>)
+              ProvidedParameter("prefix", typeof<string>) ],
+            invokeCode =
+                fun [ lang; stream; prefix ] ->
+                    <@@ let lang = (%%lang: XivLanguage)
+                        let archive = new ZipArchive((%%stream: Stream), ZipArchiveMode.Read)
+                        let prefix = (%%prefix: string)
                         new ZippedXivCollection(lang, archive, prefix) @@>
         )
         |> tpType.AddMember
@@ -102,59 +122,90 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 ProvidedProperty(
                     propertyName = shtName,
                     propertyType = tySheetType,
-                    getterCode = (fun [ this ] -> <@@ (%%this : XivCollection).GetSheet(shtName) @@>)
+                    getterCode = (fun [ this ] -> <@@ (%%this: XivCollection).GetSheet(shtName) @@>)
                 )
 
             tpType.AddMember p
 
         tpType
 
-    member private x.CreateSheetType (shtName : string) =
+    member private x.CreateSheetType(shtName: string) =
         let tySheetType =
             ProvidedTypeDefinition(
                 asm,
                 internalNS,
                 $"Sheet_%s{shtName}",
-                Some typeof<XivSheet>,
+                Some typeof<XivSheetBase>,
                 hideObjectMethods = true,
                 nonNullable = true
             )
 
         let rowType = x.GetRowType(shtName)
 
-        let rowSeqType =
-            typedefof<seq<_>>.MakeGenericType rowType
+        // Indexed properties
+        ProvidedMethod(
+            methodName = "Item",
+            parameters = [ ProvidedParameter("key", typeof<XivKey>) ],
+            returnType = rowType,
+            invokeCode =
+                (fun [ sheet; key ] ->
+                    <@@ let key: XivKey = %%key
+                        ((%%sheet: XivSheetBase) :?> XivSheet).[key] @@>)
+        )
+        |> tySheetType.AddMember
 
-        let rowsProp =
-            ProvidedProperty(
-                propertyName = "TypedRows",
-                propertyType = rowSeqType,
-                getterCode = (fun [ this ] -> <@@ (%%this : XivSheet) :> seq<XivRow> @@>)
+        ProvidedMethod(
+            methodName = "Item",
+            parameters = [ ProvidedParameter("key", typeof<int>) ],
+            returnType = rowType,
+            invokeCode =
+                (fun [ sheet; key ] ->
+                    <@@ let key: int = %%key
+                        ((%%sheet: XivSheetBase) :?> XivSheet).[key] @@>)
+        )
+        |> tySheetType.AddMember
+
+        // IEnumerable
+        let untypedInt = typeof<System.Collections.IEnumerable>
+        let untypedMethodInfo = untypedInt.GetMethod("GetEnumerator")
+
+        let untypedMethodProvided =
+            ProvidedMethod(
+                methodName = "GetEnumerator",
+                parameters = List.empty,
+                returnType = typeof<System.Collections.IEnumerator>,
+                invokeCode =
+                    (fun [ sheet ] ->
+                        <@@ let sheet = (%%sheet: XivSheet)
+                            let ie = sheet :> System.Collections.IEnumerable
+                            ie.GetEnumerator() @@>)
             )
 
-        rowsProp.AddXmlDoc $"Get typed rows of %s{shtName}"
+        tySheetType.AddInterfaceImplementation(untypedInt)
+        tySheetType.DefineMethodOverride(untypedMethodProvided, untypedMethodInfo)
 
-        tySheetType.AddMember rowsProp
+        // IEnumerable<T>
+        let typedInterface = ProvidedTypeBuilder.MakeGenericType(typedefof<IEnumerable<_>>, [ rowType ])
+        let typedMethodInfo = typedInterface.GetMethod("GetEnumerator")
 
-        ProvidedMethod(
-            methodName = "GetItemTyped",
-            parameters = [ProvidedParameter("", typeof<XivKey>)],
-            returnType = rowType,
-            invokeCode = (fun [ this; key] -> <@@ (%%this : XivSheet).GetItem(%%key : XivKey) @@>)
-        )
-        |> tySheetType.AddMember
+        let typedMethodProvided =
+            ProvidedMethod(
+                methodName = "GetEnumerator",
+                parameters = List.empty,
+                returnType = typedefof<IEnumerator<_>>.MakeGenericType rowType,
+                invokeCode =
+                    (fun [ sheet ] ->
+                        <@@ let sheet = (%%sheet: XivSheet)
+                            let ie = sheet :> IEnumerable<_>
+                            ie.GetEnumerator() @@>)
+            )
 
-        ProvidedMethod(
-            methodName = "GetItemTyped",
-            parameters = [ProvidedParameter("", typeof<int>)],
-            returnType = rowType,
-            invokeCode = (fun [ this; key ] -> <@@ (%%this : XivSheet).GetItem(%%key : int) @@>)
-        )
-        |> tySheetType.AddMember
+        tySheetType.AddInterfaceImplementation(typedInterface)
+        tySheetType.DefineMethodOverride(typedMethodProvided, typedMethodInfo)
 
         tySheetType
 
-    member private x.CreateRowType (shtName : string) =
+    member private x.CreateRowType(shtName: string) =
         let tyRowType =
             ProvidedTypeDefinition(
                 asm,
@@ -170,37 +221,38 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
         for hdr in hdrCache.[shtName] do
             let prop =
                 match hdr with
-                | TypedHeaderItem.NoName(colIdx, typeName) ->
+                | TypedHeaderItem.NoName (colIdx, typeName) ->
                     let idx = colIdx.ToHdrIndex
+
                     let prop =
                         ProvidedProperty(
                             propertyName = $"RAW_%i{colIdx.ToRawIndex}",
                             propertyType = x.GetCellType(shtName, hdr),
-                            getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), idx) @@>)
+                            getterCode = (fun [ row ] -> <@@ TypedCell((%%row: XivRow), idx) @@>)
                         )
 
                     prop.AddXmlDoc $"字段 %s{shtName}.[%i{colIdx.ToHdrIndex}] : %s{typeName}"
 
                     prop
-                | TypedHeaderItem.Normal(colName, typeName) ->
+                | TypedHeaderItem.Normal (colName, typeName) ->
                     let prop =
                         ProvidedProperty(
                             propertyName = colName,
                             propertyType = x.GetCellType(shtName, hdr),
-                            getterCode = (fun [ row ] -> <@@ TypedCell((%%row : XivRow), colName) @@>)
+                            getterCode = (fun [ row ] -> <@@ TypedCell((%%row: XivRow), colName) @@>)
                         )
 
                     prop.AddXmlDoc $"字段 %s{shtName}->%s{colName} : %s{typeName}"
 
                     prop
-                | TypedHeaderItem.Array1D(name, tmpl, typeName, r0) ->
+                | TypedHeaderItem.Array1D (name, tmpl, typeName, r0) ->
                     let f0, t0 = r0.From, r0.To
 
                     let prop =
                         ProvidedProperty(
                             propertyName = name,
                             propertyType = x.GetCellType(shtName, hdr),
-                            getterCode = (fun [ row ] -> <@@ TypedArrayCell1D((%%row : XivRow), tmpl, f0, t0) @@>)
+                            getterCode = (fun [ row ] -> <@@ TypedArrayCell1D((%%row: XivRow), tmpl, f0, t0) @@>)
                         )
 
                     let doc =
@@ -210,7 +262,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
 
                     prop.AddXmlDoc(doc.ToString())
                     prop
-                | TypedHeaderItem.Array2D(name, tmpl, typeName, (r0, r1)) ->
+                | TypedHeaderItem.Array2D (name, tmpl, typeName, (r0, r1)) ->
                     let f0, t0 = r0.From, r0.To
                     let f1, t1 = r1.From, r1.To
 
@@ -219,7 +271,7 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                             propertyName = name,
                             propertyType = x.GetCellType(shtName, hdr),
                             getterCode =
-                                (fun [ row ] -> <@@ TypedArrayCell2D((%%row : XivRow), tmpl, f0, t0, f1, t1) @@>)
+                                (fun [ row ] -> <@@ TypedArrayCell2D((%%row: XivRow), tmpl, f0, t0, f1, t1) @@>)
                         )
 
                     let doc =
@@ -237,9 +289,9 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
 
         tyRowType
 
-    member private x.CreateCellType (shtName : string, hdr : TypedHeaderItem) =
+    member private x.CreateCellType(shtName: string, hdr: TypedHeaderItem) =
         match hdr with
-        | TypedHeaderItem.NoName(_, typeName) ->
+        | TypedHeaderItem.NoName (_, typeName) ->
             let cellType =
                 ProvidedTypeDefinition(
                     asm,
@@ -251,25 +303,23 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 )
 
             if hdrCache.ContainsKey(typeName) then
-                cellType.AddMemberDelayed
-                    (fun () -> // this是最后一个，因为定义是empty所以只有一个this
-                        ProvidedMethod(
-                            methodName = "AsRow",
-                            parameters = List.empty,
-                            returnType = x.GetRowType(typeName),
-                            invokeCode =
-                                (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
-                                    <@@ let cell = (%%cell : TypedCell)
-                                        let key = cell.AsInt()
+                cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
+                    ProvidedMethod(
+                        methodName = "AsRow",
+                        parameters = List.empty,
+                        returnType = x.GetRowType(typeName),
+                        invokeCode =
+                            (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
+                                <@@ let cell = (%%cell: TypedCell)
+                                    let key = cell.AsInt()
 
-                                        let sht =
-                                            cell.Row.Sheet.Collection.GetSheet(typeName)
+                                    let sht = cell.Row.Sheet.Collection.GetSheet(typeName)
 
-                                        sht.GetItem(key) @@>)
-                        ))
+                                    sht.[key] @@>)
+                    ))
 
             cellType
-        | TypedHeaderItem.Normal(_, typeName) ->
+        | TypedHeaderItem.Normal (_, typeName) ->
             let cellType =
                 ProvidedTypeDefinition(
                     asm,
@@ -281,25 +331,23 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 )
 
             if hdrCache.ContainsKey(typeName) then
-                cellType.AddMemberDelayed
-                    (fun () -> // this是最后一个，因为定义是empty所以只有一个this
-                        ProvidedMethod(
-                            methodName = "AsRow",
-                            parameters = List.empty,
-                            returnType = x.GetRowType(typeName),
-                            invokeCode =
-                                (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
-                                    <@@ let cell = (%%cell : TypedCell)
-                                        let key = cell.AsInt()
+                cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
+                    ProvidedMethod(
+                        methodName = "AsRow",
+                        parameters = List.empty,
+                        returnType = x.GetRowType(typeName),
+                        invokeCode =
+                            (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
+                                <@@ let cell = (%%cell: TypedCell)
+                                    let key = cell.AsInt()
 
-                                        let sht =
-                                            cell.Row.Sheet.Collection.GetSheet(typeName)
+                                    let sht = cell.Row.Sheet.Collection.GetSheet(typeName)
 
-                                        sht.GetItem(key) @@>)
-                        ))
+                                    sht.[key] @@>)
+                    ))
 
             cellType
-        | TypedHeaderItem.Array1D(_, _, typeName, _) ->
+        | TypedHeaderItem.Array1D (_, _, typeName, _) ->
             let cellType =
                 ProvidedTypeDefinition(
                     asm,
@@ -311,25 +359,22 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 )
 
             if hdrCache.ContainsKey(typeName) then
-                cellType.AddMemberDelayed
-                    (fun () -> // this是最后一个，因为定义是empty所以只有一个this
-                        ProvidedMethod(
-                            methodName = "AsRows",
-                            parameters = List.empty,
-                            returnType = x.GetRowType(typeName).MakeArrayType(),
-                            invokeCode =
-                                (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
-                                    <@@ let cell = (%%cell : TypedArrayCell1D)
+                cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
+                    ProvidedMethod(
+                        methodName = "AsRows",
+                        parameters = List.empty,
+                        returnType = x.GetRowType(typeName).MakeArrayType(),
+                        invokeCode =
+                            (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
+                                <@@ let cell = (%%cell: TypedArrayCell1D)
 
-                                        let sht =
-                                            cell.Row.Sheet.Collection.GetSheet(typeName)
+                                    let sht = cell.Row.Sheet.Collection.GetSheet(typeName)
 
-                                        cell.AsInts()
-                                        |> Array.map (fun key -> sht.GetItem(key)) @@>)
-                        ))
+                                    cell.AsInts() |> Array.map (fun key -> sht.[key]) @@>)
+                    ))
 
             cellType
-        | TypedHeaderItem.Array2D(_, _, typeName, _) ->
+        | TypedHeaderItem.Array2D (_, _, typeName, _) ->
             let cellType =
                 ProvidedTypeDefinition(
                     asm,
@@ -341,21 +386,18 @@ type ProviderContext(hdrCache : IReadOnlyDictionary<string, TypedHeaderItem []>)
                 )
 
             if hdrCache.ContainsKey(typeName) then
-                cellType.AddMemberDelayed
-                    (fun () -> // this是最后一个，因为定义是empty所以只有一个this
-                        ProvidedMethod(
-                            methodName = "AsRows",
-                            parameters = List.empty,
-                            returnType = x.GetRowType(typeName).MakeArrayType(2),
-                            invokeCode =
-                                (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
-                                    <@@ let cell = (%%cell : TypedArrayCell2D)
+                cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
+                    ProvidedMethod(
+                        methodName = "AsRows",
+                        parameters = List.empty,
+                        returnType = x.GetRowType(typeName).MakeArrayType(2),
+                        invokeCode =
+                            (fun [ cell ] -> // this是最后一个，因为定义是empty所以只有一个this
+                                <@@ let cell = (%%cell: TypedArrayCell2D)
 
-                                        let sht =
-                                            cell.Row.Sheet.Collection.GetSheet(typeName)
+                                    let sht = cell.Row.Sheet.Collection.GetSheet(typeName)
 
-                                        cell.AsInts()
-                                        |> Array2D.map (fun key -> sht.GetItem(key)) @@>)
-                        ))
+                                    cell.AsInts() |> Array2D.map (fun key -> sht.[key]) @@>)
+                    ))
 
             cellType

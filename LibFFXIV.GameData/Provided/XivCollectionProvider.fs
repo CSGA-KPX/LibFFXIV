@@ -1,4 +1,4 @@
-﻿namespace LibFFXIV.GameData.Provider
+namespace LibFFXIV.GameData.Provider
 
 #nowarn "25"
 
@@ -13,7 +13,7 @@ open LibFFXIV.GameData
 
 [<Sealed>]
 [<TypeProvider>]
-type XivCollectionProvider(cfg : TypeProviderConfig) as x =
+type XivCollectionProvider(cfg: TypeProviderConfig) as x =
     inherit TypeProviderForNamespaces(cfg)
 
     let ns = "LibFFXIV.GameData.Provided"
@@ -33,18 +33,18 @@ type XivCollectionProvider(cfg : TypeProviderConfig) as x =
     do
         colProvType.DefineStaticParameters(
             tpParameters,
-            fun (typeName : string) (args : obj []) ->
+            fun (typeName: string) (args: obj []) ->
                 let lang = XivLanguage.FromString(args.[1] :?> string)
                 let archive = args.[0] :?> string
                 let prefix = args.[2] :?> string
 
                 if hdrCache.TryBuild(lang, archive, prefix) then
                     ctx <- ProviderContext(hdrCache.Headers)
-                
+
                 ctx.ProvideFor(x, typeName)
         )
 
     do x.AddNamespace(ns, [ colProvType ])
 
-[<assembly : TypeProviderAssembly>]
+[<assembly: TypeProviderAssembly>]
 do ()

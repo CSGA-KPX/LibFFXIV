@@ -15,58 +15,49 @@ open LibFFXIV.GameData.Testing.TestResource
 
 [<TestFixture>]
 type ItemCollectionText() =
-    let file =
-        File.Open(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read)
+    let file = File.Open(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read)
 
-    let a =
-        new ZipArchive(file, ZipArchiveMode.Read)
+    let a = new ZipArchive(file, ZipArchiveMode.Read)
 
-    let col =
-        new ZippedXivCollection(XivLanguage.None, a, archivePrefix)
+    let col = new ZippedXivCollection(XivLanguage.None, a, archivePrefix)
 
     interface IDisposable with
-        member x.Dispose () =
+        member x.Dispose() =
             //(col :> IDisposable).Dispose()
             a.Dispose()
             file.Dispose()
 
     [<Test>]
-    member x.TestSeqRead () =
+    member x.TestSeqRead() =
         for item in col.GetSheet("Item") do
             ()
 
     [<Test>]
-    member x.ItemHeader () =
-        let gil = col.GetSheet("Item").GetItem(1)
+    member x.ItemHeader() =
+        let gil = col.GetSheet("Item").[1]
         gil.As<string>("Adjective") |> should equal "0"
 
-        gil.As<string>("IsCollectable")
-        |> should equal "False"
+        gil.As<string>("IsCollectable") |> should equal "False"
 
-        gil.As<string>("IsGlamourous")
-        |> should equal "False"
+        gil.As<string>("IsGlamourous") |> should equal "False"
 
     [<Test>]
-    member x.SelectedSheet () =
-        let gil = col.GetSheet("Item").GetItem(1)
+    member x.SelectedSheet() =
+        let gil = col.GetSheet("Item").[1]
 
         gil.As<string>("Adjective") |> should equal "0"
 
-        gil.As<string>("IsCollectable")
-        |> should equal "False"
+        gil.As<string>("IsCollectable") |> should equal "False"
 
-        gil.As<string>("IsGlamourous")
-        |> should equal "False"
+        gil.As<string>("IsGlamourous") |> should equal "False"
 
     [<Test>]
-    member x.TypeConvert () =
-        let gil = col.GetSheet("Item").GetItem(1)
+    member x.TypeConvert() =
+        let gil = col.GetSheet("Item").[1]
 
-        gil.As<string>("IsCollectable")
-        |> should equal "False"
+        gil.As<string>("IsCollectable") |> should equal "False"
 
-        gil.As<bool>("IsCollectable")
-        |> should equal false
+        gil.As<bool>("IsCollectable") |> should equal false
 
         gil.As<byte>("Rarity") |> should equal 1uy
         gil.As<sbyte>("Rarity") |> should equal 1y
@@ -77,8 +68,7 @@ type ItemCollectionText() =
         gil.As<int64>("Rarity") |> should equal 1L
         gil.As<uint64>("Rarity") |> should equal 1UL
 
-        gil.AsRow("ItemUICategory").Key.Main
-        |> should equal 63
+        gil.AsRow("ItemUICategory").Key.Main |> should equal 63
 
         gil.As<int16>("Rarity") |> should equal 1s
         gil.As<uint16>("Rarity") |> should equal 1us
@@ -87,5 +77,4 @@ type ItemCollectionText() =
         gil.As<int64>("Rarity") |> should equal 1L
         gil.As<uint64>("Rarity") |> should equal 1UL
 
-        gil.AsRow("ItemUICategory").Key.Main
-        |> should equal 63
+        gil.AsRow("ItemUICategory").Key.Main |> should equal 63

@@ -1,4 +1,4 @@
-﻿namespace LibFFXIV.GameData.Raw
+namespace LibFFXIV.GameData.Raw
 
 open System
 open System.IO.Compression
@@ -7,11 +7,7 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
-/// Implementation of access to zipped csv's.
-/// <param name="lang">Language postfix of csv filenames. use None of not present.</param>
-/// <param name="zip">ZipArchive to container.</param>
-/// <param name="pathPrefix">path prefix to actual csv file.</param>
-type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
+type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
     inherit XivCollection(lang)
 
     let headerLength = 3
@@ -28,9 +24,7 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
     let getFileName name =
         let woLang = prefix + String.Join(".", name, "csv")
 
-        let whLang =
-            prefix
-            + String.Join(".", name, lang.ToString(), "csv")
+        let whLang = prefix + String.Join(".", name, lang.ToString(), "csv")
 
         if entriesCache.ContainsKey(woLang) then
             woLang
@@ -38,22 +32,20 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
             whLang
         else
             failwithf $"找不到表%s{name} : %s{woLang}/%s{whLang}"
-    
+
     override x.GetSheetUncached name =
         let csv =
             seq {
                 use fs = entriesCache.[getFileName name].Open()
 
-                use csv =
-                    new CsvParser.CsvReader(fs, Text.Encoding.UTF8)
+                use csv = new CsvParser.CsvReader(fs, Text.Encoding.UTF8)
 
                 while csv.MoveNext() do
                     yield csv.Current |> Seq.toArray
             }
 
         let header =
-            let s =
-                csv |> Seq.take headerLength |> Seq.toArray
+            let s = csv |> Seq.take headerLength |> Seq.toArray
 
             Array.map3
                 (fun a b c ->
@@ -74,18 +66,18 @@ type ZippedXivCollection(lang, zip : ZipArchive, ?pathPrefix : string) =
 
         sheet
 
-    override x.GetAllSheetNames () =
+    override x.GetAllSheetNames() =
         entriesCache.Keys
         |> Seq.filter (fun path -> path.EndsWith(".csv"))
-        |> Seq.map
-            (fun path ->
-                path.[0..path.IndexOf(".") - 1]
-                    .Replace(prefix, ""))
+        |> Seq.map (fun path ->
+            path.[0 .. path.IndexOf(".") - 1]
+                .Replace(prefix, ""))
 
     override x.SheetExists name =
         try
             getFileName name |> ignore
             true
-        with _ -> false
+        with
+        | _ -> false
 
-    override x.Dispose () = base.Dispose()
+    override x.Dispose() = base.Dispose()

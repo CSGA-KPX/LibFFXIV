@@ -1,4 +1,4 @@
-﻿namespace LibFFXIV.GameData.Testing.TypeProvider
+namespace LibFFXIV.GameData.Testing.TypeProvider
 
 open System
 open System.IO
@@ -17,37 +17,25 @@ type TypedXivCollection = XivCollectionProvider<archivePath, "none", archivePref
 
 [<TestFixture>]
 type ProviderTest() =
-    let file =
-        File.Open(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read)
-
-    let a =
-        new ZipArchive(file, ZipArchiveMode.Read)
-
-    let col =
-        new TypedXivCollection(XivLanguage.None, a, archivePrefix)
+    let col = new TypedXivCollection(XivLanguage.None, archivePath, archivePrefix)
 
     interface IDisposable with
-        member x.Dispose() = 
-            //(col :> IDisposable).Dispose()
-            a.Dispose()
-            file.Dispose()
+        member x.Dispose() = col.Dispose()
 
     [<Test>]
-    member x.TestNormalColumnAndRowLookup() = 
+    member x.TestNormalColumnAndRowLookup() =
         // 测试一般字段和查表
-        for row in col.IKDRouteTable.TypedRows do
+        for row in col.IKDRouteTable do
             row.Route.AsInt() |> ignore
             row.Route.AsRow().Name.AsString() |> ignore
 
     [<Test>]
-    member x.TestArrayColumnAndRowLookup() = 
-        for row in col.SpecialShop.TypedRows do
+    member x.TestArrayColumnAndRowLookup() =
+        for row in col.SpecialShop do
             printfn "%s >>" (row.Name.AsString())
 
             // 测试一维数组
-            let achivevments =
-                row.AchievementUnlock.AsRows()
-                |> Array.map (fun row -> row.Name.AsString())
+            let achivevments = row.AchievementUnlock.AsRows() |> Array.map (fun row -> row.Name.AsString())
 
             printfn "\t %A" achivevments
 
@@ -56,11 +44,10 @@ type ProviderTest() =
 
             // 测试二维数组
             row.``Item{Receive}``.AsRows()
-            |> Array2D.iteri
-                (fun i0 i1 item ->
-                    let name = item.Name.AsString()
+            |> Array2D.iteri (fun i0 i1 item ->
+                let name = item.Name.AsString()
 
-                    if name <> "" then
-                        printfn "	 %i:%i:%s" i0 i1 (item.Name.AsString()))
+                if name <> "" then
+                    printfn "	 %i:%i:%s" i0 i1 (item.Name.AsString()))
 
             printfn "%s <<" (row.Name.AsString())

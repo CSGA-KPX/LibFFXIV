@@ -1,32 +1,31 @@
-﻿namespace LibFFXIV.GameData.Raw
+namespace LibFFXIV.GameData.Raw
 
 open System
 open System.Collections.Generic
 
 
 type XivHeaderItem =
-    {
-      /// Raw column name
+    { /// Raw column name
       ///
       /// \#, 0, 1, 2, 3 ...
-      OrignalKeyName : string
+      OrignalKeyName: string
       /// Suggested column name
       ///
       /// as the second row in csv.
-      ColumnName : string
+      ColumnName: string
       /// Suggested column type name
       ///
       /// as the third row in csv.
-      TypeName : string }
+      TypeName: string }
 
 [<Struct>]
 type XivHeaderIndex =
     /// Raw column index
     ///
     /// Same as OrignalKeyName except \#
-    | RawIndex of raw : int
+    | RawIndex of raw: int
     /// Index associated with XivHeader class
-    | HeaderIndex of hdr : int
+    | HeaderIndex of hdr: int
 
     /// <summary>
     /// Convert XivHeaderIndex to raw index.
@@ -45,7 +44,7 @@ type XivHeaderIndex =
         | HeaderIndex idx -> idx
 
 [<Sealed>]
-type XivHeader(items : XivHeaderItem []) =
+type XivHeader(items: XivHeaderItem []) =
     // #,Name,Name,Name,Name,Name
     let nameToId =
         [| for i = 0 to items.Length - 1 do
@@ -78,7 +77,8 @@ type XivHeader(items : XivHeaderItem []) =
     member internal x.GetIndex(col) =
         try
             HeaderIndex(nameToId.[col])
-        with :? KeyNotFoundException ->
+        with
+        | :? KeyNotFoundException ->
             printfn $"Unknown column name : %s{col}"
             printfn "Known names are：%s" (String.Join(" ", nameToId.Keys))
             reraise ()
@@ -87,7 +87,7 @@ type XivHeader(items : XivHeaderItem []) =
     /// Get type name of given header index.
     /// </summary>
     /// <param name="idx">Header index</param>
-    member x.GetFieldType(idx : XivHeaderIndex) =
+    member x.GetFieldType(idx: XivHeaderIndex) =
         let t = idToType.[idx.ToHdrIndex]
 
         if t.ToLowerInvariant() = "row" then
