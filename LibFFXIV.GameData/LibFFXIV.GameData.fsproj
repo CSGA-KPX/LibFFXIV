@@ -3,13 +3,15 @@
   <PropertyGroup>
     <PackageId>KPX.LibFFXIV.GameData</PackageId>
     <Authors>KPX</Authors>
-    <Version>1.1.1</Version>
+    <Version>1.1.2</Version>
     <PackageTags>FFXIV; SaintCoinach; FF14</PackageTags>
     <Description>
       This library includes typeprovider for accessing SaintCoinach's raw datadump.
     </Description>
     <PackageTags>F# fsharp data typeprovider ffxiv ff14 saintcoinach</PackageTags>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/CSGA-KPX/LibFFXIV</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CSGA-KPX/LibFFXIV</RepositoryUrl>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -40,5 +42,14 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="5.0.1" />
   </ItemGroup>
+
+  <Target Name="IncludeCsvParserTargetDir" AfterTargets="Build">
+    <ItemGroup>
+      <None Include="$(TargetDir)\CsvParser.dll">
+        <Pack>true</Pack>
+        <PackagePath>lib\$(TargetFramework)\</PackagePath>
+      </None>
+    </ItemGroup>
+  </Target>
 
 </Project>
