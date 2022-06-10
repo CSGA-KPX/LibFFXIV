@@ -3,11 +3,13 @@
   <PropertyGroup>
     <PackageId>KPX.LibFFXIV.GameData</PackageId>
     <Authors>KPX</Authors>
-    <Version>1.0.0</Version>
+    <Version>1.1.1</Version>
     <PackageTags>FFXIV; SaintCoinach; FF14</PackageTags>
     <Description>
       This library includes typeprovider for accessing SaintCoinach's raw datadump.
     </Description>
+    <PackageTags>F# fsharp data typeprovider ffxiv ff14 saintcoinach</PackageTags>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
   </PropertyGroup>
 
   <PropertyGroup>
