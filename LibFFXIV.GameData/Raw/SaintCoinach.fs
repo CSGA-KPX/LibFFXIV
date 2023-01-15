@@ -2,13 +2,9 @@ namespace LibFFXIV.GameData.Raw.SaintCoinach
 
 open System
 open System.IO
-open System.IO.Compression
-open System.Text
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Linq
-
-open LibFFXIV.GameData.Raw
 
 
 [<AutoOpen>]
@@ -29,20 +25,12 @@ type ComplexLinkData =
       Cond: LinkCond option }
 
 type ConverterType =
-    /// 颜色
     | Color
-    /// 指定行
     | Generic
-    /// 图表，直接抛异常
     | Icon
-    /// 查找多个表的id
     | MultiRef of targets: string []
-    /// 链接目标表
     | Link of target: string
-    // TomestoneOrItemReferenceConverter.cs
-    // 多表查id：TomestonesItem>item
     | Tomestone
-    // 放弃
     | ComplexLink of links: ComplexLinkData []
 
     member x.TargetType =
@@ -63,12 +51,12 @@ type ConverterType =
 
             let ret =
                 match o.["type"].ToObject<string>() with
-                | "color" -> ConverterType.Color
-                | "generic" -> ConverterType.Generic
-                | "icon" -> ConverterType.Icon
-                | "tomestone" -> ConverterType.Tomestone
-                | "multiref" -> ConverterType.MultiRef(o.["targets"].ToObject<string []>())
-                | "link" -> ConverterType.Link(o.["target"].ToObject<string>())
+                | "color" -> Color
+                | "generic" -> Generic
+                | "icon" -> Icon
+                | "tomestone" -> Tomestone
+                | "multiref" -> MultiRef(o.["targets"].ToObject<string []>())
+                | "link" -> Link(o.["target"].ToObject<string>())
                 | "complexlink" ->
                     [| let arr = o.["links"] :?> JArray
 
@@ -89,7 +77,7 @@ type ConverterType =
                              Project = project
                              Key = key
                              Cond = cond } |]
-                    |> ConverterType.ComplexLink
+                    |> ComplexLink
                 | value -> invalidArg "ConverterType" $"converterType={value}"
 
             Some ret
@@ -130,9 +118,6 @@ type SheetDefinition =
       IsGenericReferenceTarget: bool
       Definitions: DataDefintion [] }
 
-// 来自json的数据，TypeName统一重设为"Unknown-JSON overrode"
-// 看了下源代码，在使用模式下并不依赖这个字段，主要影响TypeProvider（也不会用吧）
-
 [<Sealed>]
 type JsonParser =
     static member ParseJson(s: Stream) =
@@ -157,7 +142,6 @@ type JsonParser =
             match data with
             | SimpleData (idx, name, conv) ->
                 rootId idx
-
                 let t = conv |> Option.map (fun c -> c.TargetType) |> Option.defaultValue "UNKNOWN-JSON"
 
                 out.Add(currIdx, name + postfix, t)
@@ -177,7 +161,6 @@ type JsonParser =
                     dataWalker def postfix false
 
         for def in defs do
-
             dataWalker def "" true
 
         {| Ids = colIds

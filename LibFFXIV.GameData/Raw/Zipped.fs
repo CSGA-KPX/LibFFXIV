@@ -32,54 +32,55 @@ type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
         else
             failwithf $"找不到表%s{name} : %s{woLang}/%s{whLang}"
 
+    let getHeader (csv: seq<string []>) (name: string) =
+        let s = csv |> Seq.take headerLength |> Seq.toArray
+
+        let mutable tempArray =
+            Array.map3
+                (fun a b c ->
+                    { XivHeaderItem.OrignalKeyName = a
+                      XivHeaderItem.ColumnName = b
+                      XivHeaderItem.TypeName = c })
+                s.[0]
+                s.[1]
+                s.[2]
+
+        let path = $"{prefix}Definitions/{IO.Path.GetFileName(name)}.json"
+
+        if entriesCache.ContainsKey(path) then
+            // wipe all type info, no type info provided in json
+            tempArray <-
+                tempArray
+                |> Array.mapi (fun idx item ->
+                    { item with
+                        ColumnName = $"Column{idx}"
+                        TypeName = "UNKNOWN-JSON" })
+
+            // rewrite columnName
+            use stream = entriesCache.[path].Open()
+            let data = SaintCoinach.JsonParser.ParseJson(stream)
+
+            for (idx, name, t) in data.Cols do
+                // some definition has more than actual columns
+                if idx < tempArray.Length then
+                    tempArray.[idx] <-
+                        { tempArray.[idx] with
+                            ColumnName = name
+                            TypeName = t }
+
+        XivHeader(tempArray)
+
     override x.GetSheetUncached name =
         let csv =
             seq {
                 use fs = entriesCache.[getFileName name].Open()
-
                 use csv = new CsvParser.CsvReader(fs, Text.Encoding.UTF8)
 
                 while csv.MoveNext() do
                     yield csv.Current |> Seq.toArray
             }
 
-        let header =
-            let s = csv |> Seq.take headerLength |> Seq.toArray
-
-            let mutable tempArray =
-                Array.map3
-                    (fun a b c ->
-                        { XivHeaderItem.OrignalKeyName = a
-                          XivHeaderItem.ColumnName = b
-                          XivHeaderItem.TypeName = c })
-                    s.[0]
-                    s.[1]
-                    s.[2]
-
-            let path = $"{prefix}Definitions/{IO.Path.GetFileName(name)}.json"
-
-            if entriesCache.ContainsKey(path) then
-                // wipe all type info, no type info provided in json
-                tempArray <-
-                    tempArray
-                    |> Array.mapi (fun idx item ->
-                        { item with
-                            ColumnName = $"Column{idx}"
-                            TypeName = "UNKNOWN-JSON" })
-
-                // rewrite columnName
-                use stream = entriesCache.[path].Open()
-                let data = SaintCoinach.JsonParser.ParseJson(stream)
-
-                for (idx, name, t) in data.Cols do
-                    if idx < tempArray.Length then
-                        tempArray.[idx] <-
-                            { tempArray.[idx] with
-                                ColumnName = name
-                                TypeName = t }
-
-            XivHeader(tempArray)
-
+        let header = getHeader csv name
         let sheet = XivSheet(name, x, header)
 
         csv
