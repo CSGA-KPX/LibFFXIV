@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>KPX.LibFFXIV.GameData</PackageId>
     <Authors>KPX</Authors>
-    <Version>1.1.2</Version>
+    <Version>1.2.0</Version>
     <PackageTags>FFXIV; SaintCoinach; FF14</PackageTags>
     <Description>
       This library includes typeprovider for accessing SaintCoinach's raw datadump.
@@ -23,6 +23,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Common.fs" />
     <Compile Include="Raw\XivHeader.fs" />
+    <Compile Include="Raw\SaintCoinach.fs" />
     <Compile Include="Raw\Base.fs" />
     <Compile Include="Raw\Zipped.fs" />
     <Compile Include="Provided\FSharp.TypeProviders.SDK\ProvidedTypes.fsi" />
@@ -37,6 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="FastCsvParser" Version="1.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
   </ItemGroup>
 
   <ItemGroup>
