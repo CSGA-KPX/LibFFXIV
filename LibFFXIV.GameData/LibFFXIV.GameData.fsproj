@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageId>KPX.LibFFXIV.GameData</PackageId>
     <Authors>KPX</Authors>
-    <Version>1.2.0</Version>
+    <Version>1.2.2</Version>
     <PackageTags>FFXIV; SaintCoinach; FF14</PackageTags>
     <Description>
       This library includes typeprovider for accessing SaintCoinach's raw datadump.
@@ -48,6 +48,10 @@
   <Target Name="IncludeCsvParserTargetDir" AfterTargets="Build">
     <ItemGroup>
       <None Include="$(TargetDir)\CsvParser.dll">
+        <Pack>true</Pack>
+        <PackagePath>lib\$(TargetFramework)\</PackagePath>
+      </None>
+      <None Include="$(TargetDir)\Newtonsoft.Json.dll">
         <Pack>true</Pack>
         <PackagePath>lib\$(TargetFramework)\</PackagePath>
       </None>

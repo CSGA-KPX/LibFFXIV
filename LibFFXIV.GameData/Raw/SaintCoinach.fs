@@ -141,7 +141,7 @@ type JsonParser =
         JsonParser.ParseDefs(obj.Definitions)
 
     static member private ParseDefs(defs: seq<DataDefintion>) =
-        let out = ResizeArray<int * string>()
+        let out = ResizeArray<int * string * string>()
         let colIds = ResizeArray<string>([ "key" ])
         let colNames = ResizeArray<string>([ "#" ])
         let mutable currIdx = 0
@@ -155,9 +155,12 @@ type JsonParser =
                         currIdx <- refId
 
             match data with
-            | SimpleData (idx, name, _) ->
+            | SimpleData (idx, name, conv) ->
                 rootId idx
-                out.Add(currIdx, name + postfix)
+
+                let t = conv |> Option.map (fun c -> c.TargetType) |> Option.defaultValue "UNKNOWN-JSON"
+
+                out.Add(currIdx, name + postfix, t)
                 colIds.Add((currIdx).ToString())
                 colNames.Add(name + postfix)
                 currIdx <- currIdx + 1
@@ -174,6 +177,7 @@ type JsonParser =
                     dataWalker def postfix false
 
         for def in defs do
+
             dataWalker def "" true
 
         {| Ids = colIds

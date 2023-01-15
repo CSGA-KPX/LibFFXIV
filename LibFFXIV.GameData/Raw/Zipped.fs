@@ -57,6 +57,7 @@ type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
                     s.[2]
 
             let path = $"{prefix}Definitions/{IO.Path.GetFileName(name)}.json"
+
             if entriesCache.ContainsKey(path) then
                 // wipe all type info, no type info provided in json
                 tempArray <-
@@ -70,8 +71,12 @@ type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
                 use stream = entriesCache.[path].Open()
                 let data = SaintCoinach.JsonParser.ParseJson(stream)
 
-                for (idx, name) in data.Cols do
-                    tempArray.[idx] <- { tempArray.[idx] with ColumnName = name }
+                for (idx, name, t) in data.Cols do
+                    if idx < tempArray.Length then
+                        tempArray.[idx] <-
+                            { tempArray.[idx] with
+                                ColumnName = name
+                                TypeName = t }
 
             XivHeader(tempArray)
 
