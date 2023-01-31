@@ -13,7 +13,7 @@ open FsUnitTyped
 open LibFFXIV.GameData.Testing.TestResource
 
 
-type TypedXivCollection = XivCollectionProvider<archivePath, "none", archivePrefix>
+type TypedXivCollection = XivCollectionProvider<archivePath, "none", archivePrefix, hintPath>
 
 [<TestFixture>]
 type ProviderTest() =

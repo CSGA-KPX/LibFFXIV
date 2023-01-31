@@ -20,7 +20,7 @@ type XivCollectionProvider(cfg: TypeProviderConfig) as x =
     let asm = Assembly.GetExecutingAssembly()
 
     let hdrCache = XivHeaderCache()
-    let mutable ctx = ProviderContext(hdrCache.Headers)
+    let mutable ctx = ProviderContext(hdrCache)
 
     let colProvType =
         ProvidedTypeDefinition(asm, ns, "XivCollectionProvider", None, hideObjectMethods = true, nonNullable = true)
@@ -28,18 +28,23 @@ type XivCollectionProvider(cfg: TypeProviderConfig) as x =
     let tpParameters =
         [ ProvidedStaticParameter("Archive", typeof<string>)
           ProvidedStaticParameter("Language", typeof<string>)
-          ProvidedStaticParameter("Prefix", typeof<string>) ]
+          ProvidedStaticParameter("Prefix", typeof<string>)
+          ProvidedStaticParameter("HintJson", typeof<string>, System.String.Empty) ]
 
     do
         colProvType.DefineStaticParameters(
             tpParameters,
-            fun (typeName: string) (args: obj []) ->
+            fun (typeName: string) (args: obj[]) ->
                 let lang = XivLanguage.FromString(args.[1] :?> string)
                 let archive = args.[0] :?> string
                 let prefix = args.[2] :?> string
 
-                if hdrCache.TryBuild(lang, archive, prefix) then
-                    ctx <- ProviderContext(hdrCache.Headers)
+                let hint =
+                    let str = args.[3] :?> string
+                    if str = System.String.Empty then None else Some str
+
+                if hdrCache.TryBuild(lang, archive, prefix, ?hintJsonDIr = hint) then
+                    ctx <- ProviderContext(hdrCache)
 
                 ctx.ProvideFor(x, typeName)
         )

@@ -14,38 +14,67 @@ type XivHeaderCache() =
     static let hdrParseRegex = Regex(@"[\(\[]([0-9]+)[\)\]]", RegexOptions.Compiled)
 
     let mutable cacheState = ""
-    let hdrCache = Dictionary<string, TypedHeaderItem []>()
+    let hdrCache = Dictionary<string, TypedHeaderItem[]>()
+    let hintCache = Dictionary<string, string>()
 
     /// returns true if rebuilt, otherwise false.
-    member x.TryBuild(lang: XivLanguage, archive: string, prefix: string) =
-        let curStats = $"{lang}%s{archive}%s{prefix}"
+    member x.TryBuild(lang: XivLanguage, archive: string, prefix: string, ?hintJsonDIr: string) =
+        let curStats = $"{lang}_{archive}_{prefix}_%A{hintJsonDIr}"
 
         if cacheState <> curStats then
             hdrCache.Clear()
+            hintCache.Clear()
+
             cacheState <- curStats
 
-            if not <| File.Exists(archive) then
-                let fullPath = Path.GetFullPath(archive)
-                failwithf $"the specified file %s{fullPath} does not exist."
+            x.BuildCollection(archive, lang, prefix)
 
-            use file = File.Open(archive, FileMode.Open, FileAccess.Read, FileShare.Read)
-
-            // Cache all table header
-            use zip = new ZipArchive(file, ZipArchiveMode.Read)
-
-            use col = new ZippedXivCollection(lang, zip, prefix)
-
-            for name in col.GetAllSheetNames() do
-                if not <| name.Contains("/") then
-                    let hdr = col.GetSheet(name).Header.Headers
-                    let typed = x.ParseHeaders(hdr |> Seq.toArray)
-                    hdrCache.[name] <- typed
+            if hintJsonDIr.IsSome then
+                x.BuildCommentCache(hintJsonDIr.Value)
 
             true
         else
             false
 
     member x.Headers = hdrCache :> IReadOnlyDictionary<_, _>
+
+    member x.GetHint(sht: string, colName: string) =
+        let key = $"{sht}_{colName.Split([| '[' |], 2).[0]}"
+
+        if hintCache.ContainsKey(key) then hintCache[key] else ""
+
+    member private x.BuildCommentCache(dir: string) =
+        if not <| Directory.Exists(dir) then
+            raise <| FileNotFoundException("HintJsonDIr not exists")
+
+        for path in Directory.EnumerateFiles(dir, "*.json") do
+            use s = File.OpenRead(path)
+            let sht = SaintCoinach.SaintCoinachParser.ParseJson(s)
+            let data = SaintCoinach.SaintCoinachParser.GenerateFieldComments(sht.Definitions)
+
+            for field in data do
+                if field.Comment.IsSome then
+                    let key = $"{sht.Sheet}_{field.Name}"
+                    // XMLDOC needs double newline to function
+                    hintCache.Add(key, field.Comment.Value.Replace("\r\n", "\r\n\r\n"))
+
+    member private x.BuildCollection(archive, lang, prefix) =
+        if not <| File.Exists(archive) then
+            let fullPath = Path.GetFullPath(archive)
+            failwithf $"the specified file %s{fullPath} does not exist."
+
+        use file = File.Open(archive, FileMode.Open, FileAccess.Read, FileShare.Read)
+
+        // Cache all table header
+        use zip = new ZipArchive(file, ZipArchiveMode.Read)
+
+        use col = new ZippedXivCollection(lang, zip, prefix)
+
+        for name in col.GetAllSheetNames() do
+            if not <| name.Contains("/") then
+                let hdr = col.GetSheet(name).Header.Headers
+                let typed = x.ParseHeaders(hdr |> Seq.toArray)
+                hdrCache.[name] <- typed
 
     member private x.ParseArrayIndex(name: string) =
         let mutable matchCount = -1
@@ -56,7 +85,7 @@ type XivHeaderCache() =
         let formatTemplate =
             hdrParseRegex.Replace(
                 name.Replace("{", "{{").Replace("}", "}}"),
-                MatchEvaluator (fun m ->
+                MatchEvaluator(fun m ->
                     matchCount <- matchCount + 1
                     indexes.Add(m.Groups.[1].Value |> int)
                     $"[{{%i{matchCount}}}]")
@@ -64,7 +93,7 @@ type XivHeaderCache() =
 
         baseName, formatTemplate, indexes.ToArray()
 
-    member private x.ClearHeaderTypeName(hdrs: XivHeaderItem []) =
+    member private x.ClearHeaderTypeName(hdrs: XivHeaderItem[]) =
         // this method modifies input array
         for i = 0 to hdrs.Length - 1 do
             let hdr = hdrs.[i]
@@ -72,9 +101,11 @@ type XivHeaderCache() =
             if hdr.TypeName.Contains("&") then
                 let idx = hdr.TypeName.IndexOf('&') - 1
 
-                hdrs.[i] <- { hdr with TypeName = hdr.TypeName.[0..idx] }
+                hdrs.[i] <-
+                    { hdr with
+                        TypeName = hdr.TypeName.[0..idx] }
 
-    member private x.ParseHeaders(hdrs: XivHeaderItem []) =
+    member private x.ParseHeaders(hdrs: XivHeaderItem[]) =
         x.ClearHeaderTypeName(hdrs)
 
         let ret = ResizeArray<TypedHeaderItem>(hdrs.Length)
@@ -98,7 +129,7 @@ type XivHeaderCache() =
                         indexed.[tmpl] <-
                             {| BaseName = baseName
                                TypeName = hdr.TypeName
-                               Indexes = ResizeArray<int []>() |}
+                               Indexes = ResizeArray<int[]>() |}
 
                     indexed.[tmpl].Indexes.Add(indexes)
 

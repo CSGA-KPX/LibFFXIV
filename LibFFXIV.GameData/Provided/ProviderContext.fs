@@ -15,7 +15,7 @@ open LibFFXIV.GameData.Raw
 
 
 [<Sealed>]
-type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) =
+type ProviderContext(hdrCache: XivHeaderCache) =
     let mainNS = "LibFFXIV.GameData.Provided"
     let internalNS = "LibFFXIV.GameData.Provided"
 
@@ -112,9 +112,9 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
         )
         |> tpType.AddMember
 
-        let deps = ResizeArray(hdrCache.Count)
+        let deps = ResizeArray(hdrCache.Headers.Count)
 
-        for shtName in hdrCache.Keys do
+        for shtName in hdrCache.Headers.Keys do
             let tySheetType = x.GetSheetType(shtName)
             deps.Add(tySheetType)
 
@@ -218,7 +218,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
 
         let mutable ret = List.empty<_>
 
-        for hdr in hdrCache.[shtName] do
+        for hdr in hdrCache.Headers.[shtName] do
             let prop =
                 match hdr with
                 | TypedHeaderItem.NoName (colIdx, typeName) ->
@@ -242,7 +242,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                             getterCode = (fun [ row ] -> <@@ TypedCell((%%row: XivRow), colName) @@>)
                         )
 
-                    prop.AddXmlDoc $"字段 %s{shtName}->%s{colName} : %s{typeName}"
+                    prop.AddXmlDoc $"字段 %s{shtName}->%s{colName} : %s{typeName}\r\n\r\n{hdrCache.GetHint(shtName, colName)}"
 
                     prop
                 | TypedHeaderItem.Array1D (name, tmpl, typeName, r0) ->
@@ -259,6 +259,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                         StringBuilder() // 诡异：XmlDoc中\r\n无效，\r\n\r\n才能用
                             .AppendFormat("字段模板 {0}->{1} : {2}\r\n\r\n", shtName, tmpl, typeName)
                             .AppendFormat("范围 {0} -> {1}\r\n\r\n", r0.From, r0.To)
+                            .Append($"{hdrCache.GetHint(shtName, tmpl)}")
 
                     prop.AddXmlDoc(doc.ToString())
                     prop
@@ -279,6 +280,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                             .AppendFormat("字段模板 {0}->{1} : {2}\r\n\r\n", shtName, tmpl, typeName)
                             .AppendFormat("范围0 : {0} -> {1}\r\n\r\n", r0.From, r0.To)
                             .AppendFormat("范围1 : {0} -> {1}\r\n\r\n", r1.From, r1.To)
+                            .Append($"{hdrCache.GetHint(shtName, tmpl)}")
 
                     prop.AddXmlDoc(doc.ToString())
                     prop
@@ -302,7 +304,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                     nonNullable = true
                 )
 
-            if hdrCache.ContainsKey(typeName) then
+            if hdrCache.Headers.ContainsKey(typeName) then
                 cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
                     ProvidedMethod(
                         methodName = "AsRow",
@@ -330,7 +332,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                     nonNullable = true
                 )
 
-            if hdrCache.ContainsKey(typeName) then
+            if hdrCache.Headers.ContainsKey(typeName) then
                 cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
                     ProvidedMethod(
                         methodName = "AsRow",
@@ -358,7 +360,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                     nonNullable = true
                 )
 
-            if hdrCache.ContainsKey(typeName) then
+            if hdrCache.Headers.ContainsKey(typeName) then
                 cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
                     ProvidedMethod(
                         methodName = "AsRows",
@@ -385,7 +387,7 @@ type ProviderContext(hdrCache: IReadOnlyDictionary<string, TypedHeaderItem []>) 
                     nonNullable = true
                 )
 
-            if hdrCache.ContainsKey(typeName) then
+            if hdrCache.Headers.ContainsKey(typeName) then
                 cellType.AddMemberDelayed (fun () -> // this是最后一个，因为定义是empty所以只有一个this
                     ProvidedMethod(
                         methodName = "AsRows",

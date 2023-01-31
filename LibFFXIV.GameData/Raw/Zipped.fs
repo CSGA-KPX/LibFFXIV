@@ -25,14 +25,11 @@ type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
         let woLang = prefix + String.Join(".", name, "csv")
         let whLang = prefix + String.Join(".", name, lang.ToString(), "csv")
 
-        if entriesCache.ContainsKey(woLang) then
-            woLang
-        elif entriesCache.ContainsKey(whLang) then
-            whLang
-        else
-            failwithf $"找不到表%s{name} : %s{woLang}/%s{whLang}"
+        if entriesCache.ContainsKey(woLang) then woLang
+        elif entriesCache.ContainsKey(whLang) then whLang
+        else failwithf $"找不到表%s{name} : %s{woLang}/%s{whLang}"
 
-    let getHeader (csv: seq<string []>) (name: string) =
+    let getHeader (csv: seq<string[]>) (name: string) =
         let s = csv |> Seq.take headerLength |> Seq.toArray
 
         let mutable tempArray =
@@ -58,7 +55,10 @@ type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
 
             // rewrite columnName
             use stream = entriesCache.[path].Open()
-            let data = SaintCoinach.JsonParser.ParseJson(stream)
+
+            let data =
+                let defs = SaintCoinach.SaintCoinachParser.ParseJson(stream)
+                SaintCoinach.SaintCoinachParser.GenerateSheetColumns(defs.Definitions)
 
             for (idx, name, t) in data.Cols do
                 // some definition has more than actual columns
@@ -93,15 +93,13 @@ type ZippedXivCollection(lang, zip: ZipArchive, ?pathPrefix: string) =
     override x.GetAllSheetNames() =
         entriesCache.Keys
         |> Seq.filter (fun path -> path.EndsWith(".csv"))
-        |> Seq.map (fun path ->
-            path.[0 .. path.IndexOf(".") - 1]
-                .Replace(prefix, ""))
+        |> Seq.map (fun path -> path.[0 .. path.IndexOf(".") - 1].Replace(prefix, ""))
 
     override x.SheetExists name =
         try
             getFileName name |> ignore
             true
-        with
-        | _ -> false
+        with _ ->
+            false
 
     override x.Dispose() = base.Dispose()
